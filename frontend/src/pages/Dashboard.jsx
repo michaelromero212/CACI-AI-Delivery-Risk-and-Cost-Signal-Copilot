@@ -181,8 +181,8 @@ function Dashboard() {
                                             </span>
                                         </td>
                                         <td>{(signal.confidence_score * 100).toFixed(0)}%</td>
-                                        <td style={{ maxWidth: '400px' }}>
-                                            <span className="signal-explanation">{signal.explanation}</span>
+                                        <td>
+                                            <span className="text-truncate">{signal.explanation}</span>
                                         </td>
                                         <td>
                                             {signal.current_override ? (

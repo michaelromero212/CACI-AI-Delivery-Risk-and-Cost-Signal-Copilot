@@ -528,6 +528,7 @@ code {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  table-layout: fixed;
 }
 
 .table th,
@@ -535,6 +536,7 @@ code {
   padding: var(--space-3) var(--space-4);
   text-align: left;
   border-bottom: 1px solid var(--color-border-light);
+  vertical-align: middle;
 }
 
 .table th {
@@ -545,7 +547,40 @@ code {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
 }
+
+/* Column widths for signals table */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  width: 15%;
+}
+
+/* Type */
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 10%;
+}
+
+/* Value */
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 12%;
+}
+
+/* Confidence */
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  width: 45%;
+}
+
+/* Explanation */
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  width: 18%;
+}
+
+/* Status */
 
 .table tr:last-child td {
   border-bottom: none;
@@ -553,6 +588,17 @@ code {
 
 .table tr:hover td {
   background: var(--color-bg-alt);
+}
+
+/* Text truncation for table cells */
+.text-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
 }
 
 /* ============ File Upload ============ */
