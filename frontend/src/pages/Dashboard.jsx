@@ -16,6 +16,7 @@ function Dashboard() {
     const [programs, setPrograms] = useState([]);
     const [signals, setSignals] = useState([]);
     const [costSummary, setCostSummary] = useState(null);
+    const [llmStatus, setLlmStatus] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -33,14 +34,16 @@ function Dashboard() {
     async function loadData() {
         try {
             setLoading(true);
-            const [programsRes, signalsRes, costsRes] = await Promise.all([
+            const [programsRes, signalsRes, costsRes, healthRes] = await Promise.all([
                 programsApi.list(),
                 signalsApi.list(),
                 costsApi.summary(),
+                fetch('http://localhost:8000/api/health').then(r => r.json()).catch(() => null)
             ]);
             setPrograms(programsRes.programs || []);
             setSignals(signalsRes.signals || []);
             setCostSummary(costsRes);
+            setLlmStatus(healthRes);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -328,12 +331,19 @@ function Dashboard() {
                     <div className="stat-value accent">{signalCounts.high}</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">Medium Risk Signals</div>
-                    <div className="stat-value" style={{ color: 'var(--signal-medium)' }}>{signalCounts.medium}</div>
+                    <div className="stat-label">System Mode</div>
+                    <div className="stat-value" style={{
+                        fontSize: 'var(--font-size-lg)',
+                        color: llmStatus?.llm_mode === 'real' ? 'var(--color-success)' : 'var(--color-warning)'
+                    }}>
+                        {llmStatus?.llm_mode === 'real' ? '🚀 Real AI' : '🚧 Demo Mode'}
+                    </div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">Low Risk Signals</div>
-                    <div className="stat-value" style={{ color: 'var(--signal-low)' }}>{signalCounts.low}</div>
+                    <div className="stat-label">Active Model</div>
+                    <div className="stat-value" style={{ fontSize: 'var(--font-size-sm)', opacity: 0.8 }}>
+                        {llmStatus?.model?.split('/')[1] || 'Mistral-7B'}
+                    </div>
                 </div>
             </div>
 

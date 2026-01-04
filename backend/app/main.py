@@ -68,7 +68,9 @@ def health_check():
     return {
         "status": "healthy",
         "version": "1.0.0",
-        "service": "CACI AI Delivery Risk & Cost Signal Copilot"
+        "service": "CACI AI Delivery Risk & Cost Signal Copilot",
+        "llm_mode": "real" if settings.huggingface_api_key else "fallback-demo",
+        "model": settings.huggingface_model
     }
 
 
