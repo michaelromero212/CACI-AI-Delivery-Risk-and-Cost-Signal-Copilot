@@ -1,0 +1,18 @@
+milestone_id,name,planned_date,actual_date,status,dependencies,owner,notes
+MS-001,Phase 2 Kickoff,2024-07-01,2024-07-01,Complete,,Sarah Chen,Successful launch meeting with all stakeholders
+MS-002,Requirements Baseline,2024-08-15,2024-08-12,Complete,MS-001,Tom Williams,Completed 3 days early
+MS-003,Architecture Review,2024-09-01,2024-09-05,Complete,MS-002,Jennifer Park,Minor delay for security updates
+MS-004,Development Sprint 1,2024-09-30,2024-09-30,Complete,MS-003,Dev Team,All user stories completed
+MS-005,Development Sprint 2,2024-10-31,2024-11-02,Complete,MS-004,Dev Team,2-day slip due to scope addition
+MS-006,Development Sprint 3,2024-11-30,2024-12-01,Complete,MS-005,Dev Team,Minor slip; within threshold
+MS-007,User Acceptance Testing Start,2024-12-15,2024-12-15,Complete,MS-006,QA Team,On schedule
+MS-008,UAT Complete,2024-12-30,2024-12-30,In Progress,MS-007,QA Team,3 defects remaining; expected on time
+MS-009,Integration Testing Start,2025-01-05,,At Risk,MS-008,Tom Williams,May slip to Jan 15 due to API delays
+MS-010,Integration Testing Complete,2025-01-20,,Planned,MS-009,Tom Williams,Dependent on MS-009 date
+MS-011,Security ATO Submission,2025-01-12,,On Track,MS-008,Janet Martinez,Package ready for submission
+MS-012,ATO Decision,2025-02-01,,Planned,MS-011,Security Team,30-day review window assumed
+MS-013,Wave 1 Training Complete,2025-01-20,,On Track,MS-008,Training Team,Materials finalized
+MS-014,Go-Live Decision Point,2025-02-01,,Monitoring,MS-010 MS-012,PMO,All dependencies must be green
+MS-015,Phase 2 Go-Live,2025-02-15,,Planned,MS-014,Sarah Chen,Target date; contingency buffer to Feb 28
+MS-016,Hypercare Period Start,2025-02-15,,Planned,MS-015,Support Team,30-day intensive support
+MS-017,Phase 2 Closeout,2025-03-31,,Planned,MS-016,PMO,Final documentation and lessons learned

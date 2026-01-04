@@ -1,0 +1,10 @@
+period,planned_spend,actual_spend,variance,variance_pct,cumulative_planned,cumulative_actual,burn_rate,notes
+2024-07,450000,442150,7850,1.7,450000,442150,98.3,Initial ramp-up slightly under due to hiring delays
+2024-08,525000,518720,6280,1.2,975000,960870,98.6,Team fully staffed; normal operations
+2024-09,625000,641230,-16230,-2.6,1600000,1602100,100.1,Unplanned security assessment added
+2024-10,712500,698450,14050,2.0,2312500,2300550,99.5,Some travel deferred to November
+2024-11,775000,789340,-14340,-1.9,3087500,3089890,100.1,Contractor overtime for milestone push
+2024-12,847500,821340,26160,3.1,3935000,3911230,99.4,Delayed contractor onboarding; holiday slowdown
+2025-01,875000,0,875000,100.0,4810000,3911230,81.3,Projected - expecting catch-up spend
+2025-02,825000,0,825000,100.0,5635000,3911230,69.4,Projected - final phase activities
+2025-03,615000,0,615000,100.0,6250000,3911230,62.6,Projected - closeout activities
