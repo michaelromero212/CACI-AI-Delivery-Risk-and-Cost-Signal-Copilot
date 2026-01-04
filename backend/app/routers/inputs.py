@@ -1,12 +1,12 @@
 """Inputs router - file upload and manual input handling."""
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Program, Input
 from ..schemas import InputCreate, InputResponse, InputDetailResponse
-from ..services import normalizer
+from ..services import normalizer, signal_generator
 
 router = APIRouter(prefix="/inputs", tags=["inputs"])
 
@@ -29,9 +29,10 @@ def list_program_inputs(
 async def upload_file(
     program_id: int,
     file: UploadFile = File(...),
+    auto_analyze: bool = Query(True, description="Automatically generate signals after upload"),
     db: Session = Depends(get_db)
 ):
-    """Upload a CSV or TXT file."""
+    """Upload a CSV or TXT file. Automatically analyzes for signals by default."""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
@@ -71,6 +72,15 @@ async def upload_file(
     db.add(input_obj)
     db.commit()
     db.refresh(input_obj)
+    
+    # Auto-analyze if requested (default: True)
+    if auto_analyze:
+        try:
+            await signal_generator.generate_signals(db, input_obj)
+            db.commit()
+        except Exception as e:
+            # Log but don't fail the upload if signal generation fails
+            print(f"Auto-analyze failed for input {input_obj.id}: {e}")
     
     return input_obj
 

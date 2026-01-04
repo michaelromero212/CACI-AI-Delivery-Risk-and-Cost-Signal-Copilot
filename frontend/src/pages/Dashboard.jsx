@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { programsApi, signalsApi, costsApi, inputsApi } from '../services/api';
 
 // Sample files available for quick loading
 const SAMPLE_FILES = [
-    { name: 'weekly_status_report.txt', description: 'Weekly status with milestones and blockers' },
-    { name: 'program_risk_register.csv', description: 'Risk tracking with likelihood/impact' },
-    { name: 'cost_burn_summary.csv', description: 'Budget vs actual spend by month' },
-    { name: 'delivery_milestones.csv', description: 'Schedule tracking with status' },
-    { name: 'ai_usage_log.csv', description: 'AI model invocation history' },
-    { name: 'analyst_notes.txt', description: 'Free-form analyst observations' },
+    { name: 'weekly_status_report.txt', description: 'Weekly status with blockers' },
+    { name: 'program_risk_register.csv', description: 'Risk tracking register' },
+    { name: 'cost_burn_summary.csv', description: 'Budget vs actual' },
 ];
 
 function Dashboard() {
@@ -20,11 +16,14 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Quick upload state
-    const [showUploadPanel, setShowUploadPanel] = useState(false);
-    const [selectedProgram, setSelectedProgram] = useState('');
+    // Expanded program state
+    const [expandedProgram, setExpandedProgram] = useState(null);
+
+    // Upload state
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState(null);
+    const [newProgramName, setNewProgramName] = useState('');
+    const [showNewProgram, setShowNewProgram] = useState(false);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -51,7 +50,7 @@ function Dashboard() {
         }
     }
 
-    // Load a sample file from the sample_data directory
+    // Load a sample file
     async function loadSampleFile(filename) {
         try {
             const response = await fetch(`/sample_data/${filename}`);
@@ -64,24 +63,21 @@ function Dashboard() {
         }
     }
 
-    // Upload sample file to a program
+    // Upload sample file to a program (auto-analyzes on backend)
     async function uploadSampleToProgram(programId, filename) {
         setUploading(true);
-        setUploadStatus({ type: 'loading', message: `Uploading ${filename}...` });
+        setUploadStatus({ type: 'loading', message: `Uploading & analyzing ${filename}...` });
 
         try {
             const sample = await loadSampleFile(filename);
-            if (!sample) {
-                throw new Error('Could not load sample file');
-            }
+            if (!sample) throw new Error('Could not load sample file');
 
-            // Create a File object from the content
             const file = new File([sample.content], filename, {
                 type: filename.endsWith('.csv') ? 'text/csv' : 'text/plain'
             });
 
             await inputsApi.uploadFile(programId, file);
-            setUploadStatus({ type: 'success', message: `✓ Uploaded ${filename}` });
+            setUploadStatus({ type: 'success', message: `✓ ${filename} uploaded & analyzed` });
             await loadData();
         } catch (err) {
             setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
@@ -91,38 +87,51 @@ function Dashboard() {
         }
     }
 
-    // Create a new program with sample data
+    // Create a new program
+    async function createProgram() {
+        if (!newProgramName.trim()) return;
+        setUploading(true);
+        try {
+            const program = await programsApi.create({
+                name: newProgramName.trim(),
+                description: 'New program'
+            });
+            setNewProgramName('');
+            setShowNewProgram(false);
+            await loadData();
+            setExpandedProgram(program.id);
+        } catch (err) {
+            setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
+        } finally {
+            setUploading(false);
+        }
+    }
+
+    // Quick demo program with sample data
     async function createDemoProgram() {
         setUploading(true);
         setUploadStatus({ type: 'loading', message: 'Creating demo program...' });
 
         try {
-            // Create the program
             const program = await programsApi.create({
                 name: 'Demo: Enterprise Modernization',
-                description: 'Sample program loaded with test data for demonstration'
+                description: 'Sample program with test data'
             });
 
-            // Load a couple sample files
-            const filesToLoad = ['weekly_status_report.txt', 'program_risk_register.csv', 'cost_burn_summary.csv'];
-
-            for (const filename of filesToLoad) {
-                setUploadStatus({ type: 'loading', message: `Loading ${filename}...` });
-                const sample = await loadSampleFile(filename);
+            for (const { name } of SAMPLE_FILES) {
+                setUploadStatus({ type: 'loading', message: `Uploading ${name}...` });
+                const sample = await loadSampleFile(name);
                 if (sample) {
-                    const file = new File([sample.content], filename, {
-                        type: filename.endsWith('.csv') ? 'text/csv' : 'text/plain'
+                    const file = new File([sample.content], name, {
+                        type: name.endsWith('.csv') ? 'text/csv' : 'text/plain'
                     });
                     await inputsApi.uploadFile(program.id, file);
                 }
             }
 
-            // Analyze the program
-            setUploadStatus({ type: 'loading', message: 'Analyzing inputs...' });
-            await signalsApi.analyzeProgram(program.id);
-
-            setUploadStatus({ type: 'success', message: '✓ Demo program created with signals!' });
+            setUploadStatus({ type: 'success', message: '✓ Demo program ready with signals!' });
             await loadData();
+            setExpandedProgram(program.id);
         } catch (err) {
             setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
         } finally {
@@ -131,27 +140,26 @@ function Dashboard() {
         }
     }
 
-    // Handle custom file upload
-    async function handleFileUpload(files) {
-        if (!files || files.length === 0 || !selectedProgram) return;
+    // Handle file upload
+    async function handleFileUpload(files, programId) {
+        if (!files || files.length === 0) return;
 
         setUploading(true);
-        try {
-            for (const file of files) {
-                setUploadStatus({ type: 'loading', message: `Uploading ${file.name}...` });
-                await inputsApi.uploadFile(selectedProgram, file);
+        for (const file of files) {
+            setUploadStatus({ type: 'loading', message: `Analyzing ${file.name}...` });
+            try {
+                await inputsApi.uploadFile(programId, file);
+            } catch (err) {
+                setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
             }
-            setUploadStatus({ type: 'success', message: `✓ Uploaded ${files.length} file(s)` });
-            await loadData();
-        } catch (err) {
-            setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
-        } finally {
-            setUploading(false);
-            setTimeout(() => setUploadStatus(null), 3000);
         }
+        setUploadStatus({ type: 'success', message: `✓ ${files.length} file(s) analyzed` });
+        await loadData();
+        setUploading(false);
+        setTimeout(() => setUploadStatus(null), 3000);
     }
 
-    // Count signals by value
+    // Count signals
     const signalCounts = {
         high: signals.filter(s => s.signal_value === 'HIGH' || s.signal_value === 'ANOMALOUS').length,
         medium: signals.filter(s => s.signal_value === 'MEDIUM' || s.signal_value === 'MODERATE').length,
@@ -169,7 +177,7 @@ function Dashboard() {
     if (error) {
         return (
             <div className="card">
-                <p style={{ color: 'var(--color-danger)' }}>Error loading data: {error}</p>
+                <p style={{ color: 'var(--color-danger)' }}>Error: {error}</p>
                 <button className="btn btn-primary" onClick={loadData}>Retry</button>
             </div>
         );
@@ -177,296 +185,238 @@ function Dashboard() {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
                 <h1>Dashboard</h1>
                 <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => setShowUploadPanel(!showUploadPanel)}
-                    >
-                        📁 {showUploadPanel ? 'Hide Upload' : 'Upload Data'}
-                    </button>
-                    <Link to="/programs/new" className="btn btn-primary">
-                        + New Program
-                    </Link>
+                    {programs.length === 0 ? (
+                        <button className="btn btn-primary" onClick={createDemoProgram} disabled={uploading}>
+                            🚀 Create Demo Program
+                        </button>
+                    ) : (
+                        <button className="btn btn-secondary" onClick={() => setShowNewProgram(!showNewProgram)}>
+                            + New Program
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {/* Quick Upload Panel */}
-            {showUploadPanel && (
-                <div className="card" style={{ marginBottom: 'var(--space-6)', background: 'var(--color-bg-alt)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
-                        <div>
-                            <h3 style={{ marginBottom: 'var(--space-1)' }}>Quick Data Upload</h3>
-                            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-                                Load sample files or upload your own to test signal generation
-                            </p>
-                        </div>
-                        {programs.length === 0 && (
-                            <button
-                                className="btn btn-primary"
-                                onClick={createDemoProgram}
-                                disabled={uploading}
-                            >
-                                {uploading ? 'Creating...' : '🚀 Create Demo Program'}
-                            </button>
-                        )}
+            {/* Status message */}
+            {uploadStatus && (
+                <div style={{
+                    padding: 'var(--space-3) var(--space-4)',
+                    borderRadius: 'var(--radius-md)',
+                    marginBottom: 'var(--space-4)',
+                    background: uploadStatus.type === 'success' ? 'rgba(22, 163, 74, 0.1)' :
+                        uploadStatus.type === 'error' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(37, 99, 235, 0.1)',
+                    color: uploadStatus.type === 'success' ? 'var(--color-success)' :
+                        uploadStatus.type === 'error' ? 'var(--color-danger)' : 'var(--color-info)',
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 500
+                }}>
+                    {uploadStatus.message}
+                </div>
+            )}
+
+            {/* New Program form */}
+            {showNewProgram && (
+                <div className="card" style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Program name..."
+                            value={newProgramName}
+                            onChange={(e) => setNewProgramName(e.target.value)}
+                            style={{ flex: 1 }}
+                        />
+                        <button className="btn btn-primary" onClick={createProgram} disabled={!newProgramName.trim()}>
+                            Create
+                        </button>
+                        <button className="btn btn-secondary" onClick={() => setShowNewProgram(false)}>
+                            Cancel
+                        </button>
                     </div>
-
-                    {/* Status message */}
-                    {uploadStatus && (
-                        <div style={{
-                            padding: 'var(--space-3) var(--space-4)',
-                            borderRadius: 'var(--radius-md)',
-                            marginBottom: 'var(--space-4)',
-                            background: uploadStatus.type === 'success' ? 'rgba(22, 163, 74, 0.1)' :
-                                uploadStatus.type === 'error' ? 'rgba(220, 38, 38, 0.1)' :
-                                    'rgba(37, 99, 235, 0.1)',
-                            color: uploadStatus.type === 'success' ? 'var(--color-success)' :
-                                uploadStatus.type === 'error' ? 'var(--color-danger)' :
-                                    'var(--color-info)',
-                            fontSize: 'var(--font-size-sm)',
-                            fontWeight: 500
-                        }}>
-                            {uploadStatus.message}
-                        </div>
-                    )}
-
-                    {programs.length > 0 && (
-                        <>
-                            {/* Program selector */}
-                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                <label className="form-label">Select Program</label>
-                                <select
-                                    className="form-select"
-                                    value={selectedProgram}
-                                    onChange={(e) => setSelectedProgram(e.target.value)}
-                                    style={{ maxWidth: '300px' }}
-                                >
-                                    <option value="">Choose a program...</option>
-                                    {programs.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {selectedProgram && (
-                                <>
-                                    {/* Sample files grid */}
-                                    <div style={{ marginBottom: 'var(--space-5)' }}>
-                                        <label className="form-label">Load Sample Files</label>
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                                            gap: 'var(--space-3)'
-                                        }}>
-                                            {SAMPLE_FILES.map(file => (
-                                                <button
-                                                    key={file.name}
-                                                    className="btn btn-secondary"
-                                                    style={{
-                                                        justifyContent: 'flex-start',
-                                                        textAlign: 'left',
-                                                        padding: 'var(--space-3)',
-                                                        height: 'auto',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'flex-start',
-                                                        gap: 'var(--space-1)'
-                                                    }}
-                                                    onClick={() => uploadSampleToProgram(selectedProgram, file.name)}
-                                                    disabled={uploading}
-                                                >
-                                                    <span style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
-                                                        📄 {file.name}
-                                                    </span>
-                                                    <span style={{
-                                                        fontSize: 'var(--font-size-xs)',
-                                                        color: 'var(--color-text-muted)',
-                                                        fontWeight: 400
-                                                    }}>
-                                                        {file.description}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Custom file upload */}
-                                    <div>
-                                        <label className="form-label">Or Upload Your Own</label>
-                                        <div
-                                            className="file-upload"
-                                            style={{ padding: 'var(--space-6)' }}
-                                            onClick={() => fileInputRef.current?.click()}
-                                        >
-                                            <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>📁</div>
-                                            <div className="file-upload-text">
-                                                Click to upload CSV or TXT files
-                                            </div>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept=".csv,.txt"
-                                                multiple
-                                                style={{ display: 'none' }}
-                                                onChange={(e) => handleFileUpload(e.target.files)}
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </>
-                    )}
                 </div>
             )}
 
             {/* Stats Grid */}
-            <div className="stats-grid">
+            <div className="stats-grid" style={{ marginBottom: 'var(--space-5)' }}>
                 <div className="stat-card">
-                    <div className="stat-label">Total Programs</div>
+                    <div className="stat-label">Programs</div>
                     <div className="stat-value">{programs.length}</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">High Risk Signals</div>
+                    <div className="stat-label">High Risk</div>
                     <div className="stat-value accent">{signalCounts.high}</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">System Mode</div>
-                    <div className="stat-value" style={{
-                        fontSize: 'var(--font-size-lg)',
-                        color: llmStatus?.llm_mode === 'real' ? 'var(--color-success)' : 'var(--color-warning)'
-                    }}>
-                        {llmStatus?.llm_mode === 'real' ? '🚀 Real AI' : '🚧 Demo Mode'}
-                    </div>
+                    <div className="stat-label">Medium Risk</div>
+                    <div className="stat-value" style={{ color: 'var(--signal-medium)' }}>{signalCounts.medium}</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">Active Model</div>
-                    <div className="stat-value" style={{ fontSize: 'var(--font-size-sm)', opacity: 0.8 }}>
-                        {llmStatus?.model?.split('/')[1] || 'Mistral-7B'}
+                    <div className="stat-label">AI Mode</div>
+                    <div className="stat-value" style={{
+                        fontSize: 'var(--font-size-base)',
+                        color: llmStatus?.llm_mode === 'real' ? 'var(--color-success)' : 'var(--color-warning)'
+                    }}>
+                        {llmStatus?.llm_mode === 'real' ? '🚀 Real' : '🚧 Demo'}
                     </div>
                 </div>
             </div>
 
-            {/* Cost Transparency Panel */}
-            {costSummary && costSummary.total_signals > 0 && (
-                <div className="cost-panel" style={{ marginBottom: 'var(--space-6)' }}>
-                    <div className="cost-panel-title">
-                        💰 AI Cost Transparency
+            {/* Empty state */}
+            {programs.length === 0 && (
+                <div className="empty-state">
+                    <div className="empty-state-icon">📊</div>
+                    <div className="empty-state-title">No programs yet</div>
+                    <div className="empty-state-text">
+                        Click "Create Demo Program" to get started with sample data
                     </div>
+                </div>
+            )}
+
+            {/* Programs List */}
+            {programs.map(program => {
+                const programSignals = signals.filter(s => s.program_id === program.id);
+                const isExpanded = expandedProgram === program.id;
+                const highRisk = programSignals.some(s => s.signal_value === 'HIGH' || s.signal_value === 'ANOMALOUS');
+
+                return (
+                    <div key={program.id} className="card" style={{ marginBottom: 'var(--space-4)' }}>
+                        {/* Program Header - Clickable */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                padding: 'var(--space-4)'
+                            }}
+                            onClick={() => setExpandedProgram(isExpanded ? null : program.id)}
+                        >
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                    <span style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600 }}>{program.name}</span>
+                                    {highRisk && <span className="signal-badge high">⚠️ High Risk</span>}
+                                </div>
+                                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', marginTop: 'var(--space-1)' }}>
+                                    {program.input_count} inputs • {programSignals.length} signals
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '1.2rem', opacity: 0.5 }}>{isExpanded ? '▼' : '▶'}</span>
+                        </div>
+
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                            <div style={{ borderTop: '1px solid var(--color-border-light)', padding: 'var(--space-4)' }}>
+                                {/* Quick Upload */}
+                                <div style={{ marginBottom: 'var(--space-4)' }}>
+                                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
+                                        ADD DATA
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                        {SAMPLE_FILES.map(file => (
+                                            <button
+                                                key={file.name}
+                                                className="btn btn-secondary"
+                                                style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-2) var(--space-3)' }}
+                                                onClick={() => uploadSampleToProgram(program.id, file.name)}
+                                                disabled={uploading}
+                                            >
+                                                📄 {file.name.replace('.csv', '').replace('.txt', '').replace(/_/g, ' ')}
+                                            </button>
+                                        ))}
+                                        <button
+                                            className="btn btn-secondary"
+                                            style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-2) var(--space-3)' }}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploading}
+                                        >
+                                            📁 Upload file...
+                                        </button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".csv,.txt"
+                                            multiple
+                                            style={{ display: 'none' }}
+                                            onChange={(e) => handleFileUpload(e.target.files, program.id)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Signals Table */}
+                                {programSignals.length > 0 ? (
+                                    <div>
+                                        <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
+                                            SIGNALS ({programSignals.length})
+                                        </div>
+                                        <div className="table-container">
+                                            <table className="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style={{ width: '120px' }}>Type</th>
+                                                        <th style={{ width: '80px' }}>Risk</th>
+                                                        <th style={{ width: '70px' }}>Conf.</th>
+                                                        <th>Explanation</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {programSignals.map(signal => (
+                                                        <tr key={signal.id}>
+                                                            <td>
+                                                                <span style={{ fontSize: 'var(--font-size-xs)', textTransform: 'capitalize' }}>
+                                                                    {signal.signal_type.replace('_', ' ')}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>
+                                                                    {signal.signal_value}
+                                                                </span>
+                                                            </td>
+                                                            <td>{(signal.confidence_score * 100).toFixed(0)}%</td>
+                                                            <td>
+                                                                <span className="text-truncate">{signal.explanation}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: 'var(--space-4)' }}>
+                                        No signals yet. Add data above to generate signals automatically.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+
+            {/* Cost Transparency */}
+            {costSummary && costSummary.total_signals > 0 && (
+                <div className="cost-panel" style={{ marginTop: 'var(--space-5)' }}>
+                    <div className="cost-panel-title">💰 AI Cost Transparency</div>
                     <div className="cost-grid">
                         <div className="cost-item">
                             <div className="cost-item-label">Total Cost</div>
                             <div className="cost-item-value">${costSummary.total_cost_usd.toFixed(4)}</div>
                         </div>
                         <div className="cost-item">
-                            <div className="cost-item-label">Total Tokens</div>
+                            <div className="cost-item-label">Tokens Used</div>
                             <div className="cost-item-value">{costSummary.total_tokens.toLocaleString()}</div>
                         </div>
                         <div className="cost-item">
-                            <div className="cost-item-label">Signals Generated</div>
+                            <div className="cost-item-label">Signals</div>
                             <div className="cost-item-value">{costSummary.total_signals}</div>
                         </div>
                         <div className="cost-item">
-                            <div className="cost-item-label">Avg Cost/Signal</div>
+                            <div className="cost-item-label">Avg/Signal</div>
                             <div className="cost-item-value">${costSummary.avg_cost_per_signal.toFixed(4)}</div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Programs Grid */}
-            <h2 style={{ marginBottom: 'var(--space-4)' }}>Programs</h2>
-
-            {programs.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-state-icon">📊</div>
-                    <div className="empty-state-title">No programs yet</div>
-                    <div className="empty-state-text">
-                        Create your first program to start tracking delivery risk and cost signals.
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
-                        <button
-                            className="btn btn-primary"
-                            onClick={createDemoProgram}
-                            disabled={uploading}
-                        >
-                            🚀 Create Demo Program
-                        </button>
-                        <Link to="/programs/new" className="btn btn-secondary">
-                            + Create Empty Program
-                        </Link>
-                    </div>
-                </div>
-            ) : (
-                <div className="programs-grid">
-                    {programs.map(program => {
-                        const programSignals = signals.filter(s => s.program_id === program.id);
-                        const highRisk = programSignals.some(s => s.signal_value === 'HIGH' || s.signal_value === 'ANOMALOUS');
-
-                        return (
-                            <Link to={`/programs/${program.id}`} key={program.id} style={{ textDecoration: 'none' }}>
-                                <div className="program-card">
-                                    <div className="program-name">{program.name}</div>
-                                    <div className="program-description">
-                                        {program.description || 'No description provided'}
-                                    </div>
-                                    <div className="program-stats">
-                                        <span>📄 {program.input_count} inputs</span>
-                                        <span>📊 {program.signal_count} signals</span>
-                                        {highRisk && (
-                                            <span className="signal-badge high">⚠️ High Risk</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </Link>
-                        );
-                    })}
-                </div>
-            )}
-
-            {/* Recent Signals */}
-            {signals.length > 0 && (
-                <div className="card" style={{ marginTop: 'var(--space-6)' }}>
-                    <div className="card-header">
-                        <h3 className="card-title">Recent Signals</h3>
-                    </div>
-                    <div className="table-container">
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Value</th>
-                                    <th>Confidence</th>
-                                    <th>Explanation</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {signals.slice(0, 10).map(signal => (
-                                    <tr key={signal.id}>
-                                        <td>
-                                            <span className="signal-type">{signal.signal_type.replace('_', ' ')}</span>
-                                        </td>
-                                        <td>
-                                            <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>
-                                                {signal.signal_value}
-                                            </span>
-                                        </td>
-                                        <td>{(signal.confidence_score * 100).toFixed(0)}%</td>
-                                        <td>
-                                            <span className="text-truncate">{signal.explanation}</span>
-                                        </td>
-                                        <td>
-                                            {signal.current_override ? (
-                                                <span className="override-badge">Overridden</span>
-                                            ) : (
-                                                <span className="ai-label">AI Assisted</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             )}
