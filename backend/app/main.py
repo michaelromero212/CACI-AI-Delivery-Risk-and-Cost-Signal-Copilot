@@ -63,14 +63,19 @@ async def startup_event():
 
 
 @app.get("/api/health")
-def health_check():
-    """Health check endpoint."""
+async def health_check():
+    """Health check endpoint with AI connectivity verification."""
+    from .services.llm_client import llm_client
+    
+    conn_status = await llm_client.check_connectivity()
+    
     return {
         "status": "healthy",
         "version": "1.0.0",
         "service": "CACI AI Delivery Risk & Cost Signal Copilot",
         "llm_mode": "real" if settings.huggingface_api_key else "fallback-demo",
-        "model": settings.huggingface_model
+        "model": settings.huggingface_model,
+        "ai_status": conn_status
     }
 
 

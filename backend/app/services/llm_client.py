@@ -10,7 +10,7 @@ settings = get_settings()
 class LLMClient:
     """Client for Hugging Face Inference API with token tracking."""
     
-    BASE_URL = "https://api-inference.huggingface.co/models"
+    BASE_URL = "https://router.huggingface.co/v1"
     
     def __init__(self):
         self.api_key = settings.huggingface_api_key
@@ -43,19 +43,20 @@ class LLMClient:
             # Fallback for demo mode without API key
             return self._generate_fallback(prompt)
         
-        url = f"{self.BASE_URL}/{self.model}"
+        url = f"{self.BASE_URL}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
         
         payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": max_tokens,
-                "temperature": 0.7,
-                "return_full_text": False
-            }
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": "You are an assistant for CACI that analyzes program data for risk, costs, and efficiency signals. Respond in a concise and professional manner."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": max_tokens,
+            "temperature": 0.7
         }
         
         start_time = time.time()
@@ -66,14 +67,14 @@ class LLMClient:
                 response.raise_for_status()
                 result = response.json()
         except Exception as e:
-            # Fallback on error
+            # Fallback on error (could be 401/403 permission error)
             return self._generate_fallback(prompt, str(e))
         
         latency_ms = int((time.time() - start_time) * 1000)
         
-        # Extract generated text
-        if isinstance(result, list) and len(result) > 0:
-            generated_text = result[0].get("generated_text", "")
+        # Extract generated text from OpenAI format
+        if "choices" in result and len(result["choices"]) > 0:
+            generated_text = result["choices"][0].get("message", {}).get("content", "")
         else:
             generated_text = str(result)
         
@@ -91,6 +92,70 @@ class LLMClient:
         }
         
         return generated_text, usage
+    
+    async def check_connectivity(self) -> dict:
+        """
+        Check connectivity to Hugging Face API.
+        
+        Returns:
+            dict with 'connected' boolean and 'details' string
+        """
+        if not self.api_key:
+            return {
+                "connected": False,
+                "status": "configured-demo",
+                "details": "No API key configured. Operating in fallback demo mode."
+            }
+        
+        url = f"{self.BASE_URL}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Simple health check using OpenAI format
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 1
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+                
+                if response.status_code == 200:
+                    return {
+                        "connected": True,
+                        "status": "online",
+                        "details": f"Connected via HF Router: {self.model}"
+                    }
+                elif response.status_code == 403 or response.status_code == 401:
+                    # Specific permission issue common with new Router
+                    return {
+                        "connected": False,
+                        "status": "auth-error",
+                        "details": "Token lacks 'Inference Providers' permission. Please use a Classic token or add 'Inference' scope."
+                    }
+                elif response.status_code == 503:
+                    # Model might be loading
+                    return {
+                        "connected": False,
+                        "status": "loading",
+                        "details": "Model is currently loading on Hugging Face servers."
+                    }
+                else:
+                    return {
+                        "connected": False,
+                        "status": "auth-error" if response.status_code == 401 else "api-error",
+                        "details": f"Hugging Face API error: {response.status_code} - {response.text[:100]}"
+                    }
+        except Exception as e:
+            return {
+                "connected": False,
+                "status": "network-error",
+                "details": f"Network error connecting to Hugging Face: {str(e)}"
+            }
     
     def _generate_fallback(
         self,

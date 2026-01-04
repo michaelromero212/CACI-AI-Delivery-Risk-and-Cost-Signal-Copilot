@@ -143,6 +143,62 @@ body {
   flex-direction: column;
 }
 
+/* Pulse Animation */
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+  }
+}
+
+@keyframes pulse-yellow {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(202, 138, 4, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(202, 138, 4, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(202, 138, 4, 0);
+  }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.online {
+  background-color: var(--color-success);
+  animation: pulse-green 2s infinite;
+}
+
+.status-dot.offline {
+  background-color: var(--color-danger);
+}
+
+.status-dot.loading {
+  background-color: var(--color-warning);
+  animation: pulse-yellow 2s infinite;
+}
+
 /* ============ Typography ============ */
 h1,
 h2,
@@ -550,34 +606,25 @@ code {
   white-space: nowrap;
 }
 
-/* Column widths for signals table */
-.table th:nth-child(1),
-.table td:nth-child(1) {
-  width: 15%;
+/* Column utility classes */
+.col-100 {
+  width: 100px;
+  flex-shrink: 0;
 }
 
-/* Type */
-.table th:nth-child(2),
-.table td:nth-child(2) {
-  width: 10%;
+.col-150 {
+  width: 150px;
+  flex-shrink: 0;
 }
 
-/* Value */
-.table th:nth-child(3),
-.table td:nth-child(3) {
-  width: 12%;
+.col-200 {
+  width: 200px;
+  flex-shrink: 0;
 }
 
-/* Confidence */
-.table th:nth-child(4),
-.table td:nth-child(4) {
-  width: 45%;
-}
-
-/* Explanation */
-.table th:nth-child(5),
-.table td:nth-child(5) {
-  width: 18%;
+.col-flex {
+  flex: 1;
+  min-width: 200px;
 }
 
 /* Status */

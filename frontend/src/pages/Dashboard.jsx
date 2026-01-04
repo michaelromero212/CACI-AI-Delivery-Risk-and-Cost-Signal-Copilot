@@ -255,12 +255,21 @@ function Dashboard() {
                     <div className="stat-value" style={{ color: 'var(--signal-medium)' }}>{signalCounts.medium}</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-label">AI Mode</div>
-                    <div className="stat-value" style={{
-                        fontSize: 'var(--font-size-base)',
-                        color: llmStatus?.llm_mode === 'real' ? 'var(--color-success)' : 'var(--color-warning)'
-                    }}>
-                        {llmStatus?.llm_mode === 'real' ? '🚀 Real' : '🚧 Demo'}
+                    <div className="stat-label">AI System</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                            <span className={`status-dot ${llmStatus?.ai_status?.connected ? 'online' : (llmStatus?.ai_status?.status === 'loading' ? 'loading' : 'offline')}`}></span>
+                            <span style={{
+                                fontWeight: 700,
+                                fontSize: 'var(--font-size-base)',
+                                color: llmStatus?.ai_status?.connected ? 'var(--color-success)' : 'var(--color-warning)'
+                            }}>
+                                {llmStatus?.ai_status?.connected ? 'CONNECTED' : (llmStatus?.llm_mode === 'real' ? 'OFFLINE' : 'FALLBACK')}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                            HF: {llmStatus?.model?.split('/').pop() || 'Loading...'}
+                        </div>
                     </div>
                 </div>
             </div>

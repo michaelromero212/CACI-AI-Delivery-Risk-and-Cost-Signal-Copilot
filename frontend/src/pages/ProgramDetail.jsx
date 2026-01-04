@@ -9,6 +9,7 @@ function ProgramDetail() {
     const [program, setProgram] = useState(null);
     const [inputs, setInputs] = useState([]);
     const [signals, setSignals] = useState([]);
+    const [llmStatus, setLlmStatus] = useState(null);
     const [loading, setLoading] = useState(true);
     const [analyzing, setAnalyzing] = useState(false);
     const [error, setError] = useState(null);
@@ -37,14 +38,16 @@ function ProgramDetail() {
     async function loadData() {
         try {
             setLoading(true);
-            const [programRes, inputsRes, signalsRes] = await Promise.all([
+            const [programRes, inputsRes, signalsRes, healthRes] = await Promise.all([
                 programsApi.get(id),
                 inputsApi.listForProgram(id),
                 signalsApi.list({ program_id: id }),
+                fetch('http://localhost:8000/api/health').then(r => r.json()).catch(() => null)
             ]);
             setProgram(programRes);
             setInputs(inputsRes || []);
             setSignals(signalsRes.signals || []);
+            setLlmStatus(healthRes);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -154,12 +157,36 @@ function ProgramDetail() {
                 <Link to="/" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
                     ← Back to Dashboard
                 </Link>
-                <h1 style={{ marginTop: 'var(--space-2)' }}>{program.name}</h1>
-                {program.description && (
-                    <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
-                        {program.description}
-                    </p>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h1 style={{ marginTop: 'var(--space-2)' }}>{program.name}</h1>
+                        {program.description && (
+                            <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
+                                {program.description}
+                            </p>
+                        )}
+                    </div>
+                    {llmStatus && (
+                        <div className="stat-card" style={{ padding: 'var(--space-3) var(--space-4)', minWidth: '180px' }}>
+                            <div className="stat-label">AI System</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                                    <span className={`status-dot ${llmStatus?.ai_status?.connected ? 'online' : (llmStatus?.ai_status?.status === 'loading' ? 'loading' : 'offline')}`}></span>
+                                    <span style={{
+                                        fontWeight: 700,
+                                        fontSize: 'var(--font-size-base)',
+                                        color: llmStatus?.ai_status?.connected ? 'var(--color-success)' : 'var(--color-warning)'
+                                    }}>
+                                        {llmStatus?.ai_status?.connected ? 'CONNECTED' : (llmStatus?.llm_mode === 'real' ? 'OFFLINE' : 'FALLBACK')}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                                    HF: {llmStatus?.model?.split('/').pop() || 'Loading...'}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Actions */}
@@ -306,19 +333,23 @@ function ProgramDetail() {
                             <table className="table">
                                 <thead>
                                     <tr>
-                                        <th>Type</th>
-                                        <th>Filename</th>
-                                        <th>Status</th>
-                                        <th>Content Type</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
+                                        <th className="col-100">Type</th>
+                                        <th className="col-flex">Filename</th>
+                                        <th className="col-100">Status</th>
+                                        <th className="col-150">Content Type</th>
+                                        <th className="col-150">Created</th>
+                                        <th className="col-100">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {inputs.map(input => (
                                         <tr key={input.id}>
-                                            <td>{input.input_type.toUpperCase()}</td>
-                                            <td>{input.filename || 'Manual Input'}</td>
+                                            <td className="col-100">{input.input_type.toUpperCase()}</td>
+                                            <td className="col-flex">
+                                                <span className="text-truncate" title={input.filename || 'Manual Input'}>
+                                                    {input.filename || 'Manual Input'}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <span className={`signal-badge ${input.status === 'processed' ? 'low' : 'medium'}`}>
                                                     {input.status}

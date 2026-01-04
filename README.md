@@ -36,6 +36,22 @@ python run.py
 The API will be available at `http://localhost:8000`
 - API docs: `http://localhost:8000/api/docs`
 
+### 3. Setup Hugging Face (Real AI Mode)
+To use the real AI model instead of demo fallback:
+1. **Create Account**: Go to [huggingface.co](https://huggingface.co/) and sign up.
+2. **Generate Token**:
+   - Go to **Settings** > **Access Tokens**.
+   - Click **New token**.
+   - Name it (e.g., `CACI-API-Copilot`).
+   - **IMPORTANT**: 
+     - Option A (Easiest): Select **Classic** as the token type and choose **Read**.
+     - Option B: Select **Fine-grained** and ensure you check the **"Make calls to Inference Providers"** permission.
+   - Click **Generate token**.
+3. **Configure API**:
+   - Open `backend/.env`.
+   - Paste your token into `HUGGINGFACE_API_KEY=your_token_here`.
+4. **Restart Backend**: Restart the python service to apply changes.
+
 ### Frontend Setup
 
 ```bash
