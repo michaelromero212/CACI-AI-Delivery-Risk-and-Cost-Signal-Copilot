@@ -42,7 +42,6 @@ function Header() {
           </div>
           <nav className="header-nav">
             <NavLink to="/">Dashboard</NavLink>
-            <NavLink to="/programs">Programs</NavLink>
             <NavLink to="/costs">Cost Transparency</NavLink>
           </nav>
         </div>
@@ -67,7 +66,6 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/programs" element={<Dashboard />} />
             <Route path="/programs/new" element={<NewProgram />} />
             <Route path="/programs/:id" element={<ProgramDetail />} />
             <Route path="/costs" element={<CostsDashboard />} />
