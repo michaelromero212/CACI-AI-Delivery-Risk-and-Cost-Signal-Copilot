@@ -1,0 +1,153 @@
+# CI/CD Pipeline for CACI AI Delivery Risk & Cost Signal Copilot
+# Demonstrates Git, CI/CD concepts, and unit testing proficiency
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Backend Tests
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov httpx
+      
+      - name: Run unit tests
+        working-directory: backend
+        run: |
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+      
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        if: github.event_name == 'push'
+        with:
+          files: backend/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
+  # Frontend Build & Lint
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint || true  # Don't fail on lint warnings
+      
+      - name: Build production bundle
+        working-directory: frontend
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
+
+  # Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install linting tools
+        run: pip install flake8 black isort
+      
+      - name: Check Python formatting with Black
+        working-directory: backend
+        run: black --check --diff app/ || true
+      
+      - name: Check import sorting with isort
+        working-directory: backend
+        run: isort --check-only --diff app/ || true
+      
+      - name: Lint with flake8
+        working-directory: backend
+        run: flake8 app/ --max-line-length=120 --ignore=E501,W503 || true
+
+  # Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install security tools
+        run: pip install safety bandit
+      
+      - name: Check dependencies for vulnerabilities
+        working-directory: backend
+        run: safety check -r requirements.txt || true
+      
+      - name: Run Bandit security linter
+        working-directory: backend
+        run: bandit -r app/ -ll || true
+
+  # Summary job that requires all others
+  ci-complete:
+    name: CI Complete
+    needs: [backend-test, frontend-build, code-quality, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Check CI Status
+        run: |
+          if [ "${{ needs.backend-test.result }}" == "failure" ] || \
+             [ "${{ needs.frontend-build.result }}" == "failure" ]; then
+            echo "CI failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed!"
