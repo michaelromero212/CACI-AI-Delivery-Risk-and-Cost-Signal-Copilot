@@ -1,0 +1,43 @@
+# Docker Compose for CACI AI Delivery Risk & Cost Signal Copilot
+# Full-stack deployment with optional PostgreSQL
+
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/copilot.db
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+      - HUGGINGFACE_MODEL=${HUGGINGFACE_MODEL:-meta-llama/Llama-3.2-3B-Instruct}
+    volumes:
+      - backend-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:

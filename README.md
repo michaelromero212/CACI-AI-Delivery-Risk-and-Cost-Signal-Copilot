@@ -18,8 +18,10 @@ This project is a **high-leverage Enterprise Solutions Factory (ESF) accelerator
 | **Live AI Connectivity Status** | Visual indicator showing real-time connection to inference providers |
 | **Cost Transparency** | Token usage tracking and cost-per-signal metrics for complete visibility |
 | **Human-in-the-Loop Controls** | Analyst overrides with mandatory justification for accountability |
-| **Multi-Format Input Ingestion** | Support for CSV, TXT uploads, and manual text entry |
+| **Multi-Format Input Ingestion** | Support for CSV, TXT, and **PDF** uploads plus manual text entry |
+| **Containerized Deployment** | Dockerfiles and docker-compose for PaaS-ready deployment |
 | **Audit Trail** | Full history of AI outputs and human corrections |
+
 
 ---
 
@@ -117,6 +119,24 @@ npm run dev
 ```
 
 The UI will be available at `http://localhost:5173`
+
+### 🐳 Docker Deployment (Alternative)
+
+For containerized deployment:
+
+```bash
+# Build and run with docker-compose
+docker-compose up --build
+
+# Or build individually
+docker build -t caci-copilot-backend ./backend
+docker build -t caci-copilot-frontend ./frontend
+```
+
+The stack will be available at:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+
 
 ### 3. Configure Hugging Face (Real AI Mode)
 

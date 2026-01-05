@@ -32,7 +32,7 @@ async def upload_file(
     auto_analyze: bool = Query(True, description="Automatically generate signals after upload"),
     db: Session = Depends(get_db)
 ):
-    """Upload a CSV or TXT file. Automatically analyzes for signals by default."""
+    """Upload a CSV, TXT, or PDF file. Automatically analyzes for signals by default."""
     program = db.query(Program).filter(Program.id == program_id).first()
     if not program:
         raise HTTPException(status_code=404, detail="Program not found")
@@ -43,16 +43,28 @@ async def upload_file(
         input_type = "csv"
     elif filename.lower().endswith(".txt"):
         input_type = "txt"
+    elif filename.lower().endswith(".pdf"):
+        input_type = "pdf"
     else:
         raise HTTPException(
             status_code=400,
-            detail="Unsupported file type. Only CSV and TXT files are accepted."
+            detail="Unsupported file type. Supported: CSV, TXT, PDF"
         )
     
     # Read file content
     try:
         content = await file.read()
-        raw_content = content.decode("utf-8")
+        
+        # Handle PDF files specially
+        if input_type == "pdf":
+            from ..services.pdf_parser import pdf_parser
+            if not pdf_parser.is_available():
+                raise HTTPException(status_code=500, detail="PDF parsing is not available")
+            raw_content = pdf_parser.extract_text(content)
+        else:
+            raw_content = content.decode("utf-8")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
     
