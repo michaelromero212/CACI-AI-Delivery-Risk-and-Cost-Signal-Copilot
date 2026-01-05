@@ -1,0 +1,5 @@
+timestamp,model_name,tokens_in,tokens_out,cost_estimate,purpose,user_id
+2025-01-05T08:30:00,gpt-4o,1250,500,0.04,SIGINT Signal Classification Summary,user_lynx_1
+2025-01-05T09:15:00,claude-3-5-sonnet,3400,1200,0.08,Automated PII Redaction in Field Notes,user_lynx_2
+2025-01-05T10:45:00,whisper-v3,0,0,0.12,Transcription of intercepted tactical audio,system_lynx_edge
+2025-01-05T11:20:00,gpt-4o,800,200,0.02,Risk Register Analysis Copilot,user_lynx_1

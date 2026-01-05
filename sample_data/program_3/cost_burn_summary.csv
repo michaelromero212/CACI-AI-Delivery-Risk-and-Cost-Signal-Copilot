@@ -1,0 +1,5 @@
+period,planned_spend,actual_spend,variance,variance_pct,cumulative_planned,cumulative_actual,burn_rate,notes
+2024-10,320000,315000,5000,1.6,320000,315000,98.4,Initial R&D phase start
+2024-11,450000,468000,-18000,-4.0,770000,783000,101.7,Accelerated hardware procurement for lab benches
+2024-12,580000,572000,8000,1.4,1350000,1355000,100.4,Normal operations; holiday leave impact
+2025-01,650000,0,650000,100.0,2000000,1355000,67.8,Projected: Field testing ramp-up

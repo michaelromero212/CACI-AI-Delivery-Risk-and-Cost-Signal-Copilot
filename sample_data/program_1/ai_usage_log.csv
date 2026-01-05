@@ -1,0 +1,16 @@
+date,model,tokens_input,tokens_output,total_tokens,cost_usd,purpose,user,response_time_ms
+2024-12-20,gpt-4-turbo,1250,890,2140,0.0428,Document summarization,analyst_jsmith,2340
+2024-12-20,gpt-4-turbo,2100,1450,3550,0.0710,Risk analysis report,analyst_mchen,3120
+2024-12-21,gpt-3.5-turbo,850,620,1470,0.0022,Status update parsing,system_auto,890
+2024-12-21,gpt-4-turbo,3200,2100,5300,0.1060,Technical assessment,analyst_jpark,4560
+2024-12-22,embedding-ada-002,4500,0,4500,0.0005,Document embedding,system_auto,320
+2024-12-22,gpt-3.5-turbo,1100,780,1880,0.0028,FAQ generation,analyst_mchen,1020
+2024-12-23,gpt-4-turbo,1800,1200,3000,0.0600,Milestone analysis,analyst_jsmith,2890
+2024-12-23,gpt-4-turbo,2400,1650,4050,0.0810,Budget variance review,analyst_finance,3450
+2024-12-24,gpt-3.5-turbo,600,420,1020,0.0015,Quick summary,analyst_jpark,780
+2024-12-26,gpt-4-turbo,2800,1900,4700,0.0940,Weekly digest,analyst_mchen,4120
+2024-12-27,gpt-4-turbo,1500,980,2480,0.0496,Schedule impact analysis,analyst_jsmith,2560
+2024-12-27,embedding-ada-002,6200,0,6200,0.0006,Batch embedding job,system_auto,450
+2024-12-28,gpt-4-turbo,2200,1400,3600,0.0720,Risk register update,analyst_jpark,3080
+2024-12-28,gpt-3.5-turbo,950,680,1630,0.0024,Change request triage,analyst_mchen,920
+2024-12-29,gpt-4-turbo,1650,1100,2750,0.0550,Blockers analysis,analyst_jsmith,2780

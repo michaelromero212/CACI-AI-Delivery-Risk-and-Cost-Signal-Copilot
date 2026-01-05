@@ -29,22 +29,22 @@ This project is a **high-leverage Enterprise Solutions Factory (ESF) accelerator
 ## 📸 Screenshots
 
 ### Dashboard with AI Status
-The main dashboard shows program health at a glance with a real-time AI connectivity indicator.
+The executive dashboard provides a high-level overview of portfolio health, including real-time AI connectivity status and critical risk alerts across programs like **Project LYNX** and **Mission Cloud Modernization**.
 
 ![Dashboard](docs/dashboard.png)
 
 ### Expanded Program View
-Quick access to sample data upload and signal previews directly from the dashboard.
+Analysts can expand individual program cards to quickly ingest new data (Weekly Status, Risk Register, etc.) and preview detected signals without leaving the main dashboard.
 
 ![Expanded Program Card](docs/dashboard_expanded.png)
 
 ### Program Signals Detail
-Detailed AI-generated signals with confidence scores, explanations, and cost metrics.
+Deep-dive into AI-generated signals surfacing technical and delivery risks, complete with confidence scores, natural language explanations, and inferred cost impact.
 
 ![Program Signals](docs/program_signals.png)
 
 ### Cost Transparency Dashboard
-Complete visibility into AI usage, token consumption, and cost breakdown.
+Full auditability of AI operations, tracking token consumption by model (e.g., Llama 3.2), estimated costs, and a history of human overrides to ensure fiscal accountability.
 
 ![Costs Dashboard](docs/costs_dashboard.png)
 

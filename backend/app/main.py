@@ -14,7 +14,8 @@ from .routers import (
     inputs_router,
     signals_router,
     costs_router,
-    overrides_router
+    overrides_router,
+    samples_router
 )
 from .routers.rag import router as rag_router
 
@@ -55,6 +56,7 @@ app.include_router(inputs_router, prefix="/api")
 app.include_router(signals_router, prefix="/api")
 app.include_router(costs_router, prefix="/api")
 app.include_router(overrides_router, prefix="/api")
+app.include_router(samples_router, prefix="/api")
 app.include_router(rag_router, prefix="/api")
 
 

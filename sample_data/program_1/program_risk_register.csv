@@ -1,0 +1,13 @@
+risk_id,category,description,likelihood,impact,risk_score,mitigation,owner,status,date_identified,last_updated
+RSK-001,Schedule,Legacy API integration complexity higher than estimated,High,High,9,Added 2 senior developers; daily standups with legacy team,Tom Williams,Active,2024-11-15,2024-12-28
+RSK-002,Resource,Key personnel single points of failure,Medium,High,6,Cross-training sessions scheduled; documentation in progress,Sarah Chen,Active,2024-10-01,2024-12-20
+RSK-003,Technical,Data migration quality issues,Low,High,4,Implemented automated validation scripts; manual review of exceptions,Jennifer Park,Monitoring,2024-11-01,2024-12-27
+RSK-004,Scope,Excessive change request volume,Medium,Medium,4,CCB process strengthened; change freeze proposed for Feb,Sarah Chen,Active,2024-12-15,2024-12-28
+RSK-005,Vendor,Hardware delivery delays,Low,Low,2,Built 10-day buffer into schedule; alternate vendor identified,Mike Thompson,Monitoring,2024-12-01,2024-12-22
+RSK-006,Security,ATO approval timeline uncertainty,Medium,High,6,Early engagement with security team; pre-submission reviews,Janet Martinez,Active,2024-09-15,2024-12-15
+RSK-007,Budget,Contractor rate increases in option year,Medium,Medium,4,Negotiating rate caps; identifying alternative labor sources,Finance Team,Monitoring,2024-11-20,2024-12-10
+RSK-008,Technical,Integration testing environment availability,High,Medium,6,Secured dedicated environment; backup cloud option ready,DevOps Team,Active,2024-12-10,2024-12-28
+RSK-009,Schedule,Holiday staffing gaps impacting velocity,Medium,Low,3,Pre-approved overtime; staggered leave schedules,PM Team,Closed,2024-12-01,2024-12-26
+RSK-010,Stakeholder,End user resistance to new workflows,Low,Medium,3,Change management communications increased; super-user program launched,Training Team,Monitoring,2024-10-15,2024-12-18
+RSK-011,Technical,Performance issues under load testing,Medium,High,6,Identified bottleneck in database queries; optimization in progress,Jennifer Park,Active,2024-12-20,2024-12-28
+RSK-012,Compliance,Documentation gaps for audit requirements,Low,Medium,3,Audit checklist created; weekly documentation reviews,QA Lead,Monitoring,2024-11-10,2024-12-15

@@ -1,0 +1,11 @@
+resource_id,resource_name,role,department,allocation_pct,project,start_date,end_date,status,notes
+R001,John Smith,Senior Developer,Engineering,100,Cloud Migration,2025-10-01,2026-03-31,Active,Key technical lead
+R002,Sarah Johnson,DevOps Engineer,Operations,75,Cloud Migration,2025-11-01,2026-02-28,Active,Shared with Security team
+R003,Mike Chen,Project Manager,PMO,100,Cloud Migration,2025-09-15,2026-04-30,Active,Primary PM
+R004,Emily Davis,QA Lead,Quality,50,Cloud Migration,2025-12-01,2026-03-31,At Risk,Competing priorities
+R005,Alex Kumar,Cloud Architect,Engineering,100,Cloud Migration,2025-10-01,2026-01-15,Leaving,Knowledge transfer needed
+R006,Lisa Wong,Security Analyst,Security,25,Cloud Migration,2025-11-15,2026-03-31,Active,Part-time support
+R007,David Brown,Database Admin,Data,100,Cloud Migration,2025-10-15,2026-02-28,Active,Critical path resource
+R008,Jennifer Lee,Technical Writer,Documentation,50,Cloud Migration,2026-01-01,2026-04-30,Pending,Not yet started
+R009,Robert Taylor,Business Analyst,Business,75,Cloud Migration,2025-11-01,2026-03-31,Active,Requirements lead
+R010,Maria Garcia,Training Specialist,HR,25,Cloud Migration,2026-02-01,2026-04-30,Planned,End-user training

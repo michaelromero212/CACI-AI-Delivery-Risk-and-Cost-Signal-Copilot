@@ -151,102 +151,134 @@ function ProgramDetail() {
         : ['LOW', 'MEDIUM', 'HIGH'];
 
     return (
-        <div>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'var(--space-4) var(--space-6)' }}>
             {/* Header */}
-            <div style={{ marginBottom: 'var(--space-6)' }}>
-                <Link to="/" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+            <div style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <Link to="/" style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--color-text-muted)',
+                    textDecoration: 'none',
+                    fontWeight: 500
+                }}>
                     ← Back to Dashboard
                 </Link>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <h1 style={{ marginTop: 'var(--space-2)' }}>{program.name}</h1>
+
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: 'white',
+                    padding: 'var(--space-6)',
+                    borderRadius: '12px',
+                    boxShadow: 'var(--shadow-sm)',
+                    border: '1px solid var(--color-border-light)'
+                }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                            <h1 style={{ margin: 0, fontSize: 'var(--font-size-2xl)' }}>{program.name}</h1>
+                            {signals.some(s => s.signal_value === 'HIGH') && (
+                                <span className="signal-badge high">⚠️ Attention Required</span>
+                            )}
+                        </div>
                         {program.description && (
-                            <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
+                            <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)', maxWidth: '600px', fontSize: 'var(--font-size-base)' }}>
                                 {program.description}
                             </p>
                         )}
                     </div>
+
                     {llmStatus && (
-                        <div className="stat-card" style={{ padding: 'var(--space-3) var(--space-4)', minWidth: '180px' }}>
-                            <div className="stat-label">AI System</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                    <span className={`status-dot ${llmStatus?.ai_status?.connected ? 'online' : (llmStatus?.ai_status?.status === 'loading' ? 'loading' : 'offline')}`}></span>
-                                    <span style={{
-                                        fontWeight: 700,
-                                        fontSize: 'var(--font-size-base)',
-                                        color: llmStatus?.ai_status?.connected ? 'var(--color-success)' : 'var(--color-warning)'
-                                    }}>
-                                        {llmStatus?.ai_status?.connected ? 'CONNECTED' : (llmStatus?.llm_mode === 'real' ? 'OFFLINE' : 'FALLBACK')}
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                                    HF: {llmStatus?.model?.split('/').pop() || 'Loading...'}
-                                </div>
+                        <div style={{
+                            paddingLeft: 'var(--space-6)',
+                            borderLeft: '1px solid var(--color-border-light)',
+                            minWidth: '200px'
+                        }}>
+                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: 'var(--space-2)', letterSpacing: '0.05em' }}>
+                                AI SYSTEM STATUS
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                                <span className={`status-dot ${llmStatus?.ai_status?.connected ? 'online' : (llmStatus?.ai_status?.status === 'loading' ? 'loading' : 'offline')}`}></span>
+                                <span style={{
+                                    fontWeight: 700,
+                                    fontSize: 'var(--font-size-base)',
+                                    color: llmStatus?.ai_status?.connected ? 'var(--color-success)' : 'var(--color-warning)'
+                                }}>
+                                    {llmStatus?.ai_status?.connected ? 'CONNECTED' : (llmStatus?.llm_mode === 'real' ? 'OFFLINE' : 'FALLBACK')}
+                                </span>
+                            </div>
+                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                                {llmStatus?.model?.split('/').pop() || 'Loading...'}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-                <button
-                    className="btn btn-primary btn-lg"
-                    onClick={analyzeProgram}
-                    disabled={analyzing || inputs.length === 0}
-                >
-                    {analyzing ? 'Analyzing...' : '🔍 Analyze All Inputs'}
-                </button>
-            </div>
+            {/* Actions & Tabs */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'var(--space-6)',
+                borderBottom: '1px solid var(--color-border-light)'
+            }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <button
+                        onClick={() => setActiveTab('signals')}
+                        style={{
+                            padding: 'var(--space-4) var(--space-6)',
+                            border: 'none',
+                            background: 'none',
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-base)',
+                            cursor: 'pointer',
+                            borderBottom: activeTab === 'signals' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                            color: activeTab === 'signals' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            transition: 'all 0.2s ease',
+                            marginBottom: '-1px'
+                        }}
+                    >
+                        Signals ({signals.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('inputs')}
+                        style={{
+                            padding: 'var(--space-4) var(--space-6)',
+                            border: 'none',
+                            background: 'none',
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-base)',
+                            cursor: 'pointer',
+                            borderBottom: activeTab === 'inputs' ? '3px solid var(--color-primary)' : '3px solid transparent',
+                            color: activeTab === 'inputs' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            transition: 'all 0.2s ease',
+                            marginBottom: '-1px'
+                        }}
+                    >
+                        Inputs ({inputs.length})
+                    </button>
+                </div>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: 'var(--space-4)', borderBottom: '2px solid var(--color-border-light)', marginBottom: 'var(--space-6)' }}>
-                <button
-                    onClick={() => setActiveTab('signals')}
-                    style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        border: 'none',
-                        background: 'none',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'signals' ? '2px solid var(--color-primary)' : '2px solid transparent',
-                        color: activeTab === 'signals' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        marginBottom: '-2px',
-                    }}
-                >
-                    Signals ({signals.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab('inputs')}
-                    style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        border: 'none',
-                        background: 'none',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'inputs' ? '2px solid var(--color-primary)' : '2px solid transparent',
-                        color: activeTab === 'inputs' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        marginBottom: '-2px',
-                    }}
-                >
-                    Inputs ({inputs.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab('upload')}
-                    style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        border: 'none',
-                        background: 'none',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'upload' ? '2px solid var(--color-primary)' : '2px solid transparent',
-                        color: activeTab === 'upload' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        marginBottom: '-2px',
-                    }}
-                >
-                    Add Input
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', paddingBottom: 'var(--space-2)' }}>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => setActiveTab('upload')}
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                    >
+                        <span>➕</span> Add Data
+                    </button>
+                    <button
+                        className="btn btn-primary"
+                        onClick={analyzeProgram}
+                        disabled={analyzing || inputs.length === 0}
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                    >
+                        {analyzing ? '⌛ Analyzing...' : '⚡ Re-analyze Program'}
+                    </button>
+                </div>
             </div>
 
             {/* Tab Content */}
@@ -260,58 +292,81 @@ function ProgramDetail() {
                             </div>
                         </div>
                     ) : (
-                        signals.map(signal => (
-                            <div key={signal.id} className="signal-card">
-                                <div className="signal-card-header">
-                                    <div>
-                                        <span className="signal-type">{signal.signal_type.replace('_', ' ')}</span>
-                                        <span className={`signal-badge ${signal.signal_value.toLowerCase()}`} style={{ marginLeft: 'var(--space-3)' }}>
-                                            {signal.current_override ? signal.current_override.override_value : signal.signal_value}
-                                        </span>
-                                        {signal.current_override && (
-                                            <span className="override-badge" style={{ marginLeft: 'var(--space-2)' }}>
-                                                Overridden by {signal.current_override.analyst_name}
+                        <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                            {signals.map(signal => (
+                                <div key={signal.id} className="card" style={{ padding: 'var(--space-5)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                            <span style={{
+                                                textTransform: 'uppercase',
+                                                fontSize: 'var(--font-size-xs)',
+                                                fontWeight: 700,
+                                                letterSpacing: '0.05em',
+                                                color: 'var(--color-text-secondary)',
+                                                backgroundColor: 'var(--color-bg-light)',
+                                                padding: '2px 8px',
+                                                borderRadius: '4px'
+                                            }}>
+                                                {signal.signal_type.replace('_', ' ')}
                                             </span>
-                                        )}
+                                            <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>
+                                                {signal.current_override ? signal.current_override.override_value : signal.signal_value}
+                                            </span>
+                                            {signal.current_override && (
+                                                <span className="override-badge">
+                                                    Overridden by {signal.current_override.analyst_name}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            className="btn btn-secondary btn-sm"
+                                            onClick={() => {
+                                                setOverrideModal(signal);
+                                                setOverrideForm({
+                                                    override_value: signal.signal_value,
+                                                    justification: '',
+                                                    analyst_name: '',
+                                                });
+                                            }}
+                                        >
+                                            Override
+                                        </button>
                                     </div>
-                                    <button
-                                        className="btn btn-secondary btn-sm"
-                                        onClick={() => {
-                                            setOverrideModal(signal);
-                                            setOverrideForm({
-                                                override_value: signal.signal_value,
-                                                justification: '',
-                                                analyst_name: '',
-                                            });
-                                        }}
-                                    >
-                                        Override
-                                    </button>
-                                </div>
 
-                                <p className="signal-explanation">{signal.explanation}</p>
+                                    <div style={{
+                                        backgroundColor: 'var(--color-bg-light)',
+                                        padding: 'var(--space-4)',
+                                        borderRadius: '8px',
+                                        marginBottom: 'var(--space-4)',
+                                        borderLeft: `4px solid var(--color-${signal.signal_value === 'HIGH' || signal.signal_value === 'ANOMALOUS' ? 'danger' : (signal.signal_value === 'MEDIUM' ? 'warning' : 'success')})`
+                                    }}>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }}>
+                                            AI EXPLANATION
+                                        </div>
+                                        <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--color-text-primary)' }}>{signal.explanation}</p>
+                                    </div>
 
-                                <div className="signal-meta">
-                                    <span className="signal-meta-item">
-                                        📊 Confidence: {(signal.confidence_score * 100).toFixed(0)}%
-                                    </span>
-                                    <span className="signal-meta-item">
-                                        🤖 Model: {signal.model_used || 'Unknown'}
-                                    </span>
-                                    {signal.cost_metric && (
-                                        <>
-                                            <span className="signal-meta-item">
-                                                🪙 Tokens: {signal.cost_metric.tokens_total}
-                                            </span>
-                                            <span className="signal-meta-item">
-                                                💰 Cost: ${signal.cost_metric.estimated_cost_usd.toFixed(6)}
-                                            </span>
-                                        </>
-                                    )}
-                                    <span className="ai-label">AI Assisted</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                                            <span>📊 Confidence: <strong>{(signal.confidence_score * 100).toFixed(0)}%</strong></span>
+                                            <span>⚙️ Source: {inputs.find(i => i.id === signal.input_id)?.filename || 'Manual Input'}</span>
+                                            {signal.cost_metric && (
+                                                <span>💰 Cost: ${signal.cost_metric.estimated_cost_usd.toFixed(4)}</span>
+                                            )}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '10px',
+                                            fontWeight: 700,
+                                            color: 'var(--color-primary)',
+                                            textTransform: 'uppercase',
+                                            opacity: 0.6
+                                        }}>
+                                            AI ASSISTED SIGNAL
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            ))}
+                        </div>
                     )}
                 </div>
             )}

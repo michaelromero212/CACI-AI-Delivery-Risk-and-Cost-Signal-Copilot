@@ -1,0 +1,45 @@
+SPRINT RETROSPECTIVE - Week of 2026-01-01
+==========================================
+
+TEAM: Cloud Infrastructure Team
+SPRINT: Sprint 47
+
+WHAT WENT WELL
+--------------
+- Completed migration of 12 legacy services to Kubernetes
+- Zero downtime during database cutover
+- Team collaboration improved with new standup format
+- Automated testing coverage increased to 87%
+
+WHAT NEEDS IMPROVEMENT
+-----------------------
+- Deployment pipeline still takes 45 minutes (target: 15 min)
+- Documentation lagging behind code changes
+- Cross-team dependencies causing delays
+- Technical debt in authentication module growing
+
+ACTION ITEMS
+------------
+1. [HIGH] Implement parallel test execution - Owner: Sarah
+2. [MEDIUM] Schedule documentation sprint - Owner: Mike
+3. [HIGH] Set up weekly sync with Security team - Owner: Lead
+4. [LOW] Refactor auth module - backlog
+
+BLOCKERS
+--------
+- Waiting on Security team approval for new IAM policies
+- AWS quota increase request pending (3 weeks)
+- Vendor contract renewal blocking new tool adoption
+
+RISKS IDENTIFIED
+----------------
+- Key engineer (Alex) leaving in 2 weeks, knowledge transfer incomplete
+- Budget uncertainty for Q2 may impact cloud spend
+- Compliance audit scheduled for February - prep needed
+
+METRICS
+-------
+- Velocity: 42 points (target: 45)
+- Bug escape rate: 3% (target: <5%)
+- Deployment frequency: 4/week (target: 5)
+- Lead time: 3 days (target: 2 days)

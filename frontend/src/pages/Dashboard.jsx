@@ -1,23 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { programsApi, signalsApi, costsApi, inputsApi } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { programsApi, signalsApi, costsApi, inputsApi, samplesApi } from '../services/api';
 
-// Sample files available for quick loading
-const SAMPLE_FILES = [
-    { name: 'weekly_status_report.txt', description: 'Weekly status with blockers' },
-    { name: 'program_risk_register.csv', description: 'Risk tracking register' },
-    { name: 'cost_burn_summary.csv', description: 'Budget vs actual' },
-    { name: 'sprint_retrospective.txt', description: 'Sprint retro notes' },
-    { name: 'vendor_performance.csv', description: 'Vendor tracking' },
-    { name: 'security_audit_findings.txt', description: 'Security audit' },
-    { name: 'resource_allocation.csv', description: 'Team resources' },
-];
 
 function Dashboard() {
+    const navigate = useNavigate();
     const [programs, setPrograms] = useState([]);
     const [signals, setSignals] = useState([]);
     const [inputs, setInputs] = useState([]);
     const [costSummary, setCostSummary] = useState(null);
     const [llmStatus, setLlmStatus] = useState(null);
+    const [availableSamples, setAvailableSamples] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -38,16 +31,18 @@ function Dashboard() {
     async function loadData() {
         try {
             setLoading(true);
-            const [programsRes, signalsRes, costsRes, healthRes] = await Promise.all([
+            const [programsRes, signalsRes, costsRes, healthRes, samplesRes] = await Promise.all([
                 programsApi.list(),
                 signalsApi.list(),
                 costsApi.summary(),
-                fetch('http://localhost:8000/api/health').then(r => r.json()).catch(() => null)
+                fetch('http://localhost:8000/api/health').then(r => r.json()).catch(() => null),
+                samplesApi.list()
             ]);
             setPrograms(programsRes.programs || []);
             setSignals(signalsRes.signals || []);
             setCostSummary(costsRes);
             setLlmStatus(healthRes);
+            setAvailableSamples(samplesRes.samples || {});
 
             // Fetch inputs for all programs to show source in signals table
             const allInputs = [];
@@ -67,13 +62,11 @@ function Dashboard() {
         }
     }
 
-    // Load a sample file
-    async function loadSampleFile(filename) {
+    // Load a sample file from backend
+    async function loadSampleFile(programDir, filename) {
         try {
-            const response = await fetch(`/sample_data/${filename}`);
-            if (!response.ok) throw new Error('Failed to load sample file');
-            const text = await response.text();
-            return { filename, content: text };
+            const response = await samplesApi.get(programDir, filename);
+            return { filename, content: response.content };
         } catch (err) {
             console.error('Error loading sample file:', err);
             return null;
@@ -81,7 +74,7 @@ function Dashboard() {
     }
 
     // Upload sample file to a program (auto-analyzes on backend)
-    async function uploadSampleToProgram(programId, filename) {
+    async function uploadSampleToProgram(programId, programDir, filename) {
         // Check for duplicate
         const programInputs = inputs.filter(i => i.program_id === programId);
         if (programInputs.some(i => i.filename === filename)) {
@@ -94,7 +87,7 @@ function Dashboard() {
         setUploadStatus({ type: 'loading', message: `Uploading & analyzing ${filename}...` });
 
         try {
-            const sample = await loadSampleFile(filename);
+            const sample = await loadSampleFile(programDir, filename);
             if (!sample) throw new Error('Could not load sample file');
 
             const file = new File([sample.content], filename, {
@@ -162,6 +155,22 @@ function Dashboard() {
         } finally {
             setUploading(false);
             setTimeout(() => setUploadStatus(null), 4000);
+        }
+    }
+
+    // Handle program re-analysis
+    async function handleReanalyze(programId) {
+        try {
+            setUploading(true);
+            setUploadStatus({ type: 'loading', message: 'Analyzing all program data...' });
+            await signalsApi.analyzeProgram(programId);
+            setUploadStatus({ type: 'success', message: '✓ Analysis complete' });
+            await loadData();
+        } catch (err) {
+            setUploadStatus({ type: 'error', message: `Failed: ${err.message}` });
+        } finally {
+            setUploading(false);
+            setTimeout(() => setUploadStatus(null), 3000);
         }
     }
 
@@ -347,7 +356,19 @@ function Dashboard() {
                                     {program.input_count} inputs • {programSignals.length} signals
                                 </div>
                             </div>
-                            <span style={{ fontSize: '1.2rem', opacity: 0.5 }}>{isExpanded ? '▼' : '▶'}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-1) var(--space-3)' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/programs/${program.id}`);
+                                    }}
+                                >
+                                    View Details
+                                </button>
+                                <span style={{ fontSize: '1.2rem', opacity: 0.5 }}>{isExpanded ? '▼' : '▶'}</span>
+                            </div>
                         </div>
 
                         {/* Expanded Content */}
@@ -359,15 +380,16 @@ function Dashboard() {
                                         ADD DATA
                                     </div>
                                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                                        {SAMPLE_FILES.map(file => (
+                                        {/* Show samples based on program index as a simple mapping */}
+                                        {availableSamples[`program_${program.id}`]?.map(sample => (
                                             <button
-                                                key={file.name}
+                                                key={sample.name}
                                                 className="btn btn-secondary"
                                                 style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-2) var(--space-3)' }}
-                                                onClick={() => uploadSampleToProgram(program.id, file.name)}
+                                                onClick={() => uploadSampleToProgram(program.id, `program_${program.id}`, sample.name)}
                                                 disabled={uploading}
                                             >
-                                                📄 {file.name.replace('.csv', '').replace('.txt', '').replace(/_/g, ' ')}
+                                                📄 {sample.name.replace('.csv', '').replace('.txt', '').replace(/_/g, ' ')}
                                             </button>
                                         ))}
                                         <button
@@ -377,6 +399,14 @@ function Dashboard() {
                                             disabled={uploading}
                                         >
                                             📁 Upload file...
+                                        </button>
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ fontSize: 'var(--font-size-xs)', padding: 'var(--space-2) var(--space-3)', backgroundColor: 'var(--color-primary-dark)' }}
+                                            onClick={() => handleReanalyze(program.id)}
+                                            disabled={uploading}
+                                        >
+                                            ⚡ Re-analyze Program
                                         </button>
                                         <input
                                             ref={fileInputRef}
@@ -389,45 +419,33 @@ function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Signals Table */}
+                                {/* Signals Breakdown */}
                                 {programSignals.length > 0 ? (
-                                    <div>
-                                        <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
-                                            SIGNALS ({programSignals.length})
+                                    <div style={{ marginTop: 'var(--space-4)' }}>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
+                                            DETECTED SIGNALS
                                         </div>
-                                        <div className="table-container" style={{ overflowX: 'auto' }}>
-                                            <table className="table" style={{ width: '100%', minWidth: '600px' }}>
+                                        <div className="table-container">
+                                            <table className="table" style={{ fontSize: 'var(--font-size-sm)' }}>
                                                 <thead>
                                                     <tr>
-                                                        <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Source</th>
-                                                        <th style={{ width: '80px', whiteSpace: 'nowrap' }}>Type</th>
-                                                        <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Risk</th>
-                                                        <th style={{ width: '50px', textAlign: 'center', whiteSpace: 'nowrap' }}>Conf.</th>
+                                                        <th style={{ width: '150px' }}>Source</th>
+                                                        <th style={{ width: '100px' }}>Risk Level</th>
+                                                        <th style={{ width: '80px', textAlign: 'center' }}>Conf.</th>
                                                         <th>Explanation</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {programSignals.map(signal => {
-                                                        const input = inputs.find(i => i.id === signal.input_id);
-                                                        const sourceName = input?.filename
-                                                            ? input.filename.replace(/\.(csv|txt|pdf)$/i, '').replace(/_/g, ' ')
-                                                            : input?.input_type === 'manual' ? 'Manual entry' : `Input #${signal.input_id}`;
+                                                        const sourceInput = inputs.find(i => i.id === signal.input_id);
+                                                        const sourceName = sourceInput ? (sourceInput.filename ? sourceInput.filename.replace('.csv', '').replace('.txt', '').replace(/_/g, ' ') : 'Manual') : 'Unknown';
+
                                                         return (
                                                             <tr key={signal.id}>
-                                                                <td style={{ verticalAlign: 'top', padding: '8px 4px' }}>
-                                                                    <span style={{
-                                                                        fontSize: 'var(--font-size-xs)',
-                                                                        color: 'var(--color-text-muted)',
-                                                                        lineHeight: '1.3',
-                                                                        wordBreak: 'break-word'
-                                                                    }}>
-                                                                        📄 {sourceName}
-                                                                    </span>
-                                                                </td>
-                                                                <td style={{ verticalAlign: 'top' }}>
-                                                                    <span style={{ fontSize: 'var(--font-size-xs)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
-                                                                        {signal.signal_type.replace('_', ' ')}
-                                                                    </span>
+                                                                <td style={{ verticalAlign: 'top', fontWeight: 600, color: 'var(--color-primary)' }}>
+                                                                    <div className="text-truncate" style={{ maxWidth: '140px' }} title={sourceName}>
+                                                                        {sourceName}
+                                                                    </div>
                                                                 </td>
                                                                 <td style={{ verticalAlign: 'top' }}>
                                                                     <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>

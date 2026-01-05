@@ -1,0 +1,5 @@
+risk_id,category,description,likelihood,impact,risk_score,mitigation,owner,status,date_identified,last_updated
+RSK-401,Compliance,ATO for Secret-level Azure GovCloud delayed due to audit log gaps,High,High,9,Implementing automated log shipping to SIEM; daily sync with ISSO,Sarah Chen,Active,2025-01-05,2025-01-05
+RSK-402,Technical,Legacy mission app port 80/443 hardcoding prevents containerization,Medium,Medium,4,Implementing Nginx reverse proxy sidecar; rewriting app config via InitContainers,DevOps Team,Active,2024-12-15,2024-12-28
+RSK-403,Schedule,Disconnected operations sync latency over satellite links,High,High,9,Implementing differential sync; local caching for non-critical mission data,Mission Systems Lead,Active,2025-01-02,2025-01-05
+RSK-404,Vendor,Azure GovCloud region capacity limits for specialized VMs,Medium,High,6,Reserving instances 6 months in advance; cross-region failover design,Finance Team,Active,2024-11-10,2024-12-20

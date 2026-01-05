@@ -1,0 +1,5 @@
+risk_id,category,description,likelihood,impact,risk_score,mitigation,owner,status,date_identified,last_updated
+RSK-301,Technical,Edge processing latency for SIGINT classification exceeds 50ms,High,High,9,Optimizing TensorRT kernels; upgrading to Jetson Orin AGX,Dr. Aris Thorne,Active,2025-01-05,2025-01-05
+RSK-302,Personnel,TS/SCI Polygraph backlog for algorithm developers,Medium,High,6,Leveraging existing cleared staff from Project VULCAN; expedite requests,HR Security,Active,2024-12-10,2025-01-02
+RSK-303,Supply Chain,FPGA lead times increased to 26 weeks,High,Medium,6,Pre-purchasing long-lead hardware; exploring alternative SoC architectures,Logistics Team,Active,2024-11-20,2024-12-28
+RSK-304,Security,Encryption algorithm validation for tactical data links,Low,High,4,Engaging with NSA/CSS early for Type-1 certification path,Janet Martinez,Monitoring,2024-10-15,2024-12-15

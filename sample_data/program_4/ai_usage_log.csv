@@ -1,0 +1,4 @@
+timestamp,model_name,tokens_in,tokens_out,cost_estimate,purpose,user_id
+2025-01-05T09:00:00,gpt-4o,2500,800,0.06,Infrastructure as Code Template Generation (Terraform),user_cloud_1
+2025-01-05T10:30:00,claude-3-5-sonnet,5000,1500,0.12,Security Policy Compliance Audit (ATO Prep),user_cloud_2
+2025-01-05T13:45:00,gpt-4o,1200,400,0.03,Mission App Port Mapping Troubleshooter,user_cloud_1

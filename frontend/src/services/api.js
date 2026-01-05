@@ -127,6 +127,13 @@ export const overridesApi = {
     },
 };
 
+// ============ Samples ============
+
+export const samplesApi = {
+    list: () => request('/samples'),
+    get: (programName, filename) => request(`/samples/${programName}/${filename}`),
+};
+
 // ============ Health ============
 
 export const healthApi = {
