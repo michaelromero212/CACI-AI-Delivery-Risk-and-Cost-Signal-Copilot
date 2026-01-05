@@ -16,6 +16,7 @@ from .routers import (
     costs_router,
     overrides_router
 )
+from .routers.rag import router as rag_router
 
 settings = get_settings()
 
@@ -54,6 +55,7 @@ app.include_router(inputs_router, prefix="/api")
 app.include_router(signals_router, prefix="/api")
 app.include_router(costs_router, prefix="/api")
 app.include_router(overrides_router, prefix="/api")
+app.include_router(rag_router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -69,13 +71,21 @@ async def health_check():
     
     conn_status = await llm_client.check_connectivity()
     
+    # Get RAG status
+    try:
+        from .services.rag_service import rag_service
+        rag_status = rag_service.get_stats()
+    except Exception:
+        rag_status = {"available": False}
+    
     return {
         "status": "healthy",
         "version": "1.0.0",
         "service": "CACI AI Delivery Risk & Cost Signal Copilot",
         "llm_mode": "real" if settings.huggingface_api_key else "fallback-demo",
         "model": settings.huggingface_model,
-        "ai_status": conn_status
+        "ai_status": conn_status,
+        "rag_status": rag_status
     }
 
 

@@ -15,6 +15,7 @@ This project is a **high-leverage Enterprise Solutions Factory (ESF) accelerator
 | Feature | Description |
 |---------|-------------|
 | **AI-Powered Signal Generation** | Real-time risk and cost analysis using Meta's Llama 3.2 via Hugging Face |
+| **RAG (Retrieval Augmented Generation)** | Semantic search with FAISS + sentence-transformers for intelligent context retrieval |
 | **Live AI Connectivity Status** | Visual indicator showing real-time connection to inference providers |
 | **Cost Transparency** | Token usage tracking and cost-per-signal metrics for complete visibility |
 | **Human-in-the-Loop Controls** | Analyst overrides with mandatory justification for accountability |
@@ -86,6 +87,7 @@ Complete visibility into AI usage, token consumption, and cost breakdown.
 | **ORM** | SQLAlchemy 2.0 | Database abstraction layer |
 | **Database** | SQLite (default) / PostgreSQL | Persistent storage |
 | **AI Model** | Meta Llama 3.2 3B Instruct | Signal generation via HF Router |
+| **RAG/Embeddings** | FAISS, sentence-transformers | Vector search + embeddings |
 | **API Protocol** | OpenAI-compatible Chat Completions | Industry-standard format |
 
 ---
@@ -219,6 +221,13 @@ This accelerator embodies Enterprise Solutions Factory principles:
 |--------|----------|-------------|
 | `GET` | `/api/health` | System health with AI connectivity status |
 | `GET` | `/api/costs/summary` | Cost transparency metrics |
+
+### RAG (Retrieval Augmented Generation)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/rag/status` | RAG service status and stats |
+| `POST` | `/api/rag/reindex/{program_id}` | Reindex all documents for a program |
+| `DELETE` | `/api/rag/clear/{program_id}` | Clear embeddings for a program |
 
 ---
 

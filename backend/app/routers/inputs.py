@@ -85,6 +85,19 @@ async def upload_file(
     db.commit()
     db.refresh(input_obj)
     
+    # Store embeddings for RAG (non-blocking)
+    try:
+        from ..services.rag_service import rag_service
+        if rag_service.is_available():
+            rag_service.store_input_embeddings(
+                input_id=input_obj.id,
+                program_id=program_id,
+                content=normalized_content,
+                filename=filename
+            )
+    except Exception as e:
+        print(f"RAG embedding storage failed for input {input_obj.id}: {e}")
+    
     # Auto-analyze if requested (default: True)
     if auto_analyze:
         try:

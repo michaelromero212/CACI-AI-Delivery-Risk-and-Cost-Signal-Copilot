@@ -134,10 +134,29 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
         signal_type: str
     ) -> Signal:
         """Generate a single signal of the specified type."""
+        # Prepare base content
+        base_content = input_obj.normalized_content or input_obj.raw_content
+        
+        # Try to augment with RAG context
+        try:
+            from .rag_service import rag_service
+            if rag_service.is_available():
+                rag_result = rag_service.get_relevant_context(
+                    query=base_content[:500],  # Use first 500 chars as query
+                    program_id=input_obj.program_id,
+                    max_chunks=3,
+                    min_relevance=0.25
+                )
+                if rag_result.get("context"):
+                    # Prepend retrieved context
+                    base_content = f"[Retrieved Context from Program Documents]\n{rag_result['context']}\n\n[Current Input]\n{base_content}"
+        except Exception as e:
+            print(f"RAG retrieval failed: {e}")
+        
         # Prepare prompt
         prompt_template = self.PROMPTS.get(signal_type, self.PROMPTS["delivery_risk"])
         prompt = prompt_template.format(
-            content=input_obj.normalized_content or input_obj.raw_content,
+            content=base_content,
             metadata=str(input_obj.metadata_json or {})
         )
         
