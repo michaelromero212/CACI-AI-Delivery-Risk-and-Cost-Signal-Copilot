@@ -101,13 +101,40 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
             except ValueError:
                 pass
         
-        # Parse explanation
-        exp_match = re.search(r"EXPLANATION:\s*(.+?)(?:\n|$)", response, re.IGNORECASE | re.DOTALL)
+        # Parse explanation - Capture everything after the tag till the end
+        exp_match = re.search(r"EXPLANATION:\s*(.*)", response, re.IGNORECASE | re.DOTALL)
         if exp_match:
             explanation = exp_match.group(1).strip()
         
         return signal_value, confidence, explanation
     
+    
+    def _is_valid_signal(self, value: str, confidence: float, explanation: str, signal_type: str) -> Tuple[bool, str]:
+        """Validate the quality and completeness of a generated signal."""
+        if "unable to parse" in explanation.lower():
+            return False, "Failed to parse LLM response format."
+            
+        # Check for placeholder/empty explanation
+        if not explanation or len(explanation) < 30:
+            return False, "Explanation is too short or empty."
+            
+        # Check for common cut-off patterns
+        if explanation.endswith(":") or explanation.endswith("include"):
+            return False, "Explanation appears to be truncated."
+            
+        # Validate value based on type
+        valid_values = {
+            "delivery_risk": ["LOW", "MEDIUM", "HIGH"],
+            "cost_risk": ["NORMAL", "ANOMALOUS"],
+            "ai_efficiency": ["LOW", "MODERATE", "HIGH"]
+        }
+        
+        type_values = valid_values.get(signal_type, [])
+        if type_values and value not in type_values:
+            return False, f"Invalid signal value '{value}' for type '{signal_type}'."
+            
+        return True, ""
+
     async def generate_signals(
         self,
         db: Session,
@@ -160,11 +187,31 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
             metadata=str(input_obj.metadata_json or {})
         )
         
-        # Call LLM
-        response, usage = await llm_client.generate(prompt)
+        # Call LLM with retry logic
+        max_retries = 2
+        retry_count = 0
+        current_prompt = prompt
         
-        # Parse response
-        signal_value, confidence, explanation = self._parse_llm_response(response)
+        while retry_count <= max_retries:
+            response, usage = await llm_client.generate(current_prompt)
+            signal_value, confidence, explanation = self._parse_llm_response(response)
+            
+            # Validate output
+            is_valid, error_msg = self._is_valid_signal(signal_value, confidence, explanation, signal_type)
+            
+            if is_valid:
+                break
+            
+            retry_count += 1
+            if retry_count <= max_retries:
+                print(f"Signal validation failed (attempt {retry_count}/{max_retries + 1}): {error_msg}")
+                # Augment prompt for retry
+                current_prompt = f"{prompt}\n\nNOTE: Your previous response was invalid: {error_msg}. Please ensure you follow the structure perfectly and provide a full, detailed explanation."
+            else:
+                print(f"Signal validation failed after {max_retries} retries. Using best effort.")
+        
+        # Parse response one last time in case best effort is needed
+        # (Already done in the loop)
         
         # Create signal
         signal = Signal(

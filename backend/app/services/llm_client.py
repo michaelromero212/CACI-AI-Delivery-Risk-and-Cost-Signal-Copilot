@@ -52,7 +52,15 @@ class LLMClient:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You are an assistant for CACI that analyzes program data for risk, costs, and efficiency signals. Respond in a concise and professional manner."},
+                {"role": "system", "content": """You are an expert program analyst for CACI. 
+Analyze the provided program data and identify risk, cost, or efficiency signals.
+You MUST provide your response in the following exact format:
+
+SIGNAL_VALUE: [HIGH/MEDIUM/LOW or ANOMALOUS/NORMAL or MODERATE]
+CONFIDENCE: [0.0 to 1.0]
+EXPLANATION: [A detailed, multi-line professional explanation of the signal and its context]
+
+Ensure the EXPLANATION section is thorough and addresses specific details from the input."""},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": max_tokens,

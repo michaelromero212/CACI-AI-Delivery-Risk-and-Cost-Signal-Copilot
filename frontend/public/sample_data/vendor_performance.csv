@@ -1,0 +1,9 @@
+vendor_id,vendor_name,contract_value,start_date,end_date,status,risk_level,performance_score,issues
+V001,CloudServe Inc,2500000,2025-01-15,2026-01-15,Active,Medium,78,Delayed deliverables in Q3
+V002,SecureNet Solutions,850000,2025-06-01,2026-05-31,Active,Low,92,None
+V003,DataPipeline Corp,1200000,2025-03-01,2026-02-28,At Risk,High,61,Multiple SLA breaches
+V004,DevOps Partners,450000,2025-09-01,2026-08-31,Active,Low,88,Minor communication issues
+V005,Analytics Plus,780000,2025-04-15,2026-04-14,Active,Medium,75,Scope creep concerns
+V006,Infrastructure Ltd,3200000,2024-07-01,2026-06-30,Active,Medium,82,Key personnel turnover
+V007,QA Excellence,320000,2025-08-01,2026-07-31,Under Review,High,58,Quality issues in testing
+V008,Training Solutions,180000,2025-10-01,2026-03-31,Active,Low,95,None

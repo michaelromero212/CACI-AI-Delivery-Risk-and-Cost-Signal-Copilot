@@ -6,11 +6,16 @@ const SAMPLE_FILES = [
     { name: 'weekly_status_report.txt', description: 'Weekly status with blockers' },
     { name: 'program_risk_register.csv', description: 'Risk tracking register' },
     { name: 'cost_burn_summary.csv', description: 'Budget vs actual' },
+    { name: 'sprint_retrospective.txt', description: 'Sprint retro notes' },
+    { name: 'vendor_performance.csv', description: 'Vendor tracking' },
+    { name: 'security_audit_findings.txt', description: 'Security audit' },
+    { name: 'resource_allocation.csv', description: 'Team resources' },
 ];
 
 function Dashboard() {
     const [programs, setPrograms] = useState([]);
     const [signals, setSignals] = useState([]);
+    const [inputs, setInputs] = useState([]);
     const [costSummary, setCostSummary] = useState(null);
     const [llmStatus, setLlmStatus] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -43,6 +48,18 @@ function Dashboard() {
             setSignals(signalsRes.signals || []);
             setCostSummary(costsRes);
             setLlmStatus(healthRes);
+
+            // Fetch inputs for all programs to show source in signals table
+            const allInputs = [];
+            for (const program of (programsRes.programs || [])) {
+                try {
+                    const programInputs = await inputsApi.listForProgram(program.id);
+                    allInputs.push(...programInputs);
+                } catch (e) {
+                    console.error('Failed to fetch inputs for program', program.id);
+                }
+            }
+            setInputs(allInputs);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -65,6 +82,14 @@ function Dashboard() {
 
     // Upload sample file to a program (auto-analyzes on backend)
     async function uploadSampleToProgram(programId, filename) {
+        // Check for duplicate
+        const programInputs = inputs.filter(i => i.program_id === programId);
+        if (programInputs.some(i => i.filename === filename)) {
+            setUploadStatus({ type: 'error', message: `⚠️ "${filename}" already exists in this program` });
+            setTimeout(() => setUploadStatus(null), 3000);
+            return;
+        }
+
         setUploading(true);
         setUploadStatus({ type: 'loading', message: `Uploading & analyzing ${filename}...` });
 
@@ -143,6 +168,15 @@ function Dashboard() {
     // Handle file upload
     async function handleFileUpload(files, programId) {
         if (!files || files.length === 0) return;
+
+        // Check for duplicates
+        const programInputs = inputs.filter(i => i.program_id === programId);
+        const duplicates = Array.from(files).filter(f => programInputs.some(i => i.filename === f.name));
+        if (duplicates.length > 0) {
+            setUploadStatus({ type: 'error', message: `⚠️ "${duplicates[0].name}" already exists in this program` });
+            setTimeout(() => setUploadStatus(null), 3000);
+            return;
+        }
 
         setUploading(true);
         for (const file of files) {
@@ -361,35 +395,57 @@ function Dashboard() {
                                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--color-text-secondary)' }}>
                                             SIGNALS ({programSignals.length})
                                         </div>
-                                        <div className="table-container">
-                                            <table className="table">
+                                        <div className="table-container" style={{ overflowX: 'auto' }}>
+                                            <table className="table" style={{ width: '100%', minWidth: '600px' }}>
                                                 <thead>
                                                     <tr>
-                                                        <th style={{ width: '120px' }}>Type</th>
-                                                        <th style={{ width: '80px' }}>Risk</th>
-                                                        <th style={{ width: '70px' }}>Conf.</th>
+                                                        <th style={{ width: '140px', whiteSpace: 'nowrap' }}>Source</th>
+                                                        <th style={{ width: '80px', whiteSpace: 'nowrap' }}>Type</th>
+                                                        <th style={{ width: '100px', whiteSpace: 'nowrap' }}>Risk</th>
+                                                        <th style={{ width: '50px', textAlign: 'center', whiteSpace: 'nowrap' }}>Conf.</th>
                                                         <th>Explanation</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {programSignals.map(signal => (
-                                                        <tr key={signal.id}>
-                                                            <td>
-                                                                <span style={{ fontSize: 'var(--font-size-xs)', textTransform: 'capitalize' }}>
-                                                                    {signal.signal_type.replace('_', ' ')}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>
-                                                                    {signal.signal_value}
-                                                                </span>
-                                                            </td>
-                                                            <td>{(signal.confidence_score * 100).toFixed(0)}%</td>
-                                                            <td>
-                                                                <span className="text-truncate">{signal.explanation}</span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {programSignals.map(signal => {
+                                                        const input = inputs.find(i => i.id === signal.input_id);
+                                                        const sourceName = input?.filename
+                                                            ? input.filename.replace(/\.(csv|txt|pdf)$/i, '').replace(/_/g, ' ')
+                                                            : input?.input_type === 'manual' ? 'Manual entry' : `Input #${signal.input_id}`;
+                                                        return (
+                                                            <tr key={signal.id}>
+                                                                <td style={{ verticalAlign: 'top', padding: '8px 4px' }}>
+                                                                    <span style={{
+                                                                        fontSize: 'var(--font-size-xs)',
+                                                                        color: 'var(--color-text-muted)',
+                                                                        lineHeight: '1.3',
+                                                                        wordBreak: 'break-word'
+                                                                    }}>
+                                                                        📄 {sourceName}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ verticalAlign: 'top' }}>
+                                                                    <span style={{ fontSize: 'var(--font-size-xs)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                                                                        {signal.signal_type.replace('_', ' ')}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ verticalAlign: 'top' }}>
+                                                                    <span className={`signal-badge ${signal.signal_value.toLowerCase()}`}>
+                                                                        {signal.signal_value}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ textAlign: 'center', verticalAlign: 'top' }}>{(signal.confidence_score * 100).toFixed(0)}%</td>
+                                                                <td style={{
+                                                                    fontSize: 'var(--font-size-sm)',
+                                                                    lineHeight: '1.5',
+                                                                    color: 'var(--color-text-secondary)',
+                                                                    wordBreak: 'break-word'
+                                                                }}>
+                                                                    {signal.explanation}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
