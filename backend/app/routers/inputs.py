@@ -7,6 +7,7 @@ from ..database import get_db
 from ..models import Program, Input
 from ..schemas import InputCreate, InputResponse, InputDetailResponse
 from ..services import normalizer, signal_generator
+from ..logging_config import logger
 
 router = APIRouter(prefix="/inputs", tags=["inputs"])
 
@@ -96,7 +97,7 @@ async def upload_file(
                 filename=filename
             )
     except Exception as e:
-        print(f"RAG embedding storage failed for input {input_obj.id}: {e}")
+        logger.error(f"RAG embedding storage failed for input {input_obj.id}: {e}")
     
     # Auto-analyze if requested (default: True)
     if auto_analyze:
@@ -105,7 +106,7 @@ async def upload_file(
             db.commit()
         except Exception as e:
             # Log but don't fail the upload if signal generation fails
-            print(f"Auto-analyze failed for input {input_obj.id}: {e}")
+            logger.error(f"Auto-analyze failed for input {input_obj.id}: {e}")
     
     return input_obj
 
