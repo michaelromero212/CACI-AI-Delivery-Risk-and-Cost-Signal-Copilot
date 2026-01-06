@@ -20,6 +20,9 @@ This project is a **high-leverage Enterprise Solutions Factory (ESF) accelerator
 | **Cost Transparency** | Token usage tracking and cost-per-signal metrics for complete visibility |
 | **Human-in-the-Loop Controls** | Analyst overrides with mandatory justification for accountability |
 | **Multi-Format Input Ingestion** | Support for CSV, TXT, and **PDF** uploads plus manual text entry |
+| **LLM Resilience** | Exponential backoff retries with tenacity for handling transient API issues |
+| **Structured Validation** | Pydantic-driven response schemas for ultra-reliable post-AI parsing |
+| **Professional Logging** | Standardized observability across all services for rapid debugging |
 | **Containerized Deployment** | Dockerfiles and docker-compose for PaaS-ready deployment |
 | **Audit Trail** | Full history of AI outputs and human corrections |
 
@@ -87,6 +90,9 @@ Full auditability of AI operations, tracking token consumption by model (e.g., L
 | **ORM** | SQLAlchemy 2.0 | Database abstraction layer |
 | **Database** | SQLite (default) / PostgreSQL | Persistent storage |
 | **AI Model** | Meta Llama 3.2 3B Instruct | Signal generation via HF Router |
+| **Resilience** | tenacity | Exponential backoff and retry logic |
+| **Validation** | Pydantic V2 | Structured schemas for API and AI outputs |
+| **Logging** | Python logging | Standardized observability and error tracking |
 | **RAG/Embeddings** | FAISS, sentence-transformers | Vector search + embeddings |
 | **API Protocol** | OpenAI-compatible Chat Completions | Industry-standard format |
 
@@ -173,6 +179,17 @@ The `sample_data/` directory includes realistic test files for quick demos:
 | `delivery_milestones.csv` | Schedule tracking data |
 | `ai_usage_log.csv` | AI model invocation history |
 | `analyst_notes.txt` | Free-form analyst observations |
+
+---
+
+## 🛡️ Resilience & Observability
+
+This accelerator is built for enterprise-grade reliability, featuring a robust "Resilience Layer" between the application and the Inference Provider:
+
+- **Exponential Backoff**: Automatic retries using the `tenacity` library ensure that temporary model loading (HF 503 errors) or network flakiness don't break the analyst experience.
+- **Resilient Parsing**: A combination of strict Pydantic schemas and fuzzy regex parsing ensures that even if the LLM returns slightly malformed markdown, the system extracts the signals correctly.
+- **Input Sanitization**: Automatic truncation and sanitization of large data inputs prevent token overflow and prompt injection while maintaining performance.
+- **Service Observability**: Full transition from `print` debugging to standardized Python logging. Every major service (RAG, LLM, Normalizer) emits structured logs with timestamps and line numbers for rapid troubleshooting.
 
 ---
 
