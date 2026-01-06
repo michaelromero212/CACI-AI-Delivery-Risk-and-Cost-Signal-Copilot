@@ -1,14 +1,17 @@
-"""LLM Client - Hugging Face Inference API wrapper with cost tracking."""
 import time
 import httpx
+import logging
 from typing import Optional, Tuple
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from ..config import get_settings
+from ..logging_config import logger
+from ..prompts import SYSTEM_PROMPT
 
 settings = get_settings()
 
 
 class LLMClient:
-    """Client for Hugging Face Inference API with token tracking."""
+    """Client for Hugging Face Inference API with token tracking and resilience."""
     
     BASE_URL = "https://router.huggingface.co/v1"
     
@@ -17,6 +20,8 @@ class LLMClient:
         self.model = settings.huggingface_model
         self.cost_per_1k_input = settings.cost_per_1k_input_tokens
         self.cost_per_1k_output = settings.cost_per_1k_output_tokens
+        self.timeout = settings.llm_timeout
+        self.max_retries = settings.llm_max_retries
     
     def _estimate_tokens(self, text: str) -> int:
         """Rough token estimation (avg 4 chars per token)."""
@@ -28,19 +33,37 @@ class LLMClient:
         output_cost = (output_tokens / 1000) * self.cost_per_1k_output
         return input_cost + output_cost
     
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
+        reraise=True
+    )
+    async def _perform_request(self, client: httpx.AsyncClient, url: str, headers: dict, payload: dict) -> dict:
+        """Perform individual request with retry logic."""
+        response = await client.post(url, headers=headers, json=payload)
+        
+        # If model is loading, Hugging Face returns 503
+        if response.status_code == 503:
+            logger.warning("Model is loading (503). Retrying...")
+            response.raise_for_status()
+            
+        response.raise_for_status()
+        return response.json()
+
     async def generate(
         self,
         prompt: str,
         max_tokens: int = 500
     ) -> Tuple[str, dict]:
         """
-        Generate text using Hugging Face Inference API.
+        Generate text using Hugging Face Inference API with resilience.
         
         Returns:
             Tuple of (generated_text, usage_metrics)
         """
         if not self.api_key:
-            # Fallback for demo mode without API key
+            logger.info("No API key configured. Using fallback demo mode.")
             return self._generate_fallback(prompt)
         
         url = f"{self.BASE_URL}/chat/completions"
@@ -52,15 +75,7 @@ class LLMClient:
         payload = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": """You are an expert program analyst for CACI. 
-Analyze the provided program data and identify risk, cost, or efficiency signals.
-You MUST provide your response in the following exact format:
-
-SIGNAL_VALUE: [HIGH/MEDIUM/LOW or ANOMALOUS/NORMAL or MODERATE]
-CONFIDENCE: [0.0 to 1.0]
-EXPLANATION: [A detailed, multi-line professional explanation of the signal and its context]
-
-Ensure the EXPLANATION section is thorough and addresses specific details from the input."""},
+                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": max_tokens,
@@ -70,12 +85,10 @@ Ensure the EXPLANATION section is thorough and addresses specific details from t
         start_time = time.time()
         
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                result = response.json()
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                result = await self._perform_request(client, url, headers, payload)
         except Exception as e:
-            # Fallback on error (could be 401/403 permission error)
+            logger.error(f"LLM generation failed after retries: {str(e)}")
             return self._generate_fallback(prompt, str(e))
         
         latency_ms = int((time.time() - start_time) * 1000)

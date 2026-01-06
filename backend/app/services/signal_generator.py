@@ -6,63 +6,17 @@ from ..models import Input, Signal, CostMetric
 from .llm_client import llm_client
 
 
+from ..logging_config import logger
+from ..prompts import PROMPTS
+from ..models.schemas import LLMSignalResponse
+
+
 class SignalGenerator:
     """Generates AI-assisted signals from normalized inputs."""
     
     SIGNAL_TYPES = ["delivery_risk", "cost_risk", "ai_efficiency"]
     
-    PROMPTS = {
-        "delivery_risk": """You are an expert program analyst assessing delivery risk for government programs.
-
-Analyze the following input and determine the DELIVERY RISK level.
-
-INPUT:
-{content}
-
-METADATA:
-{metadata}
-
-Based on this information, provide your assessment in the following format:
-SIGNAL_VALUE: [LOW, MEDIUM, or HIGH]
-CONFIDENCE: [0.0 to 1.0]
-EXPLANATION: [2-3 sentence explanation of key risk factors]
-
-Focus on schedule delays, resource constraints, dependency issues, and scope changes.""",
-
-        "cost_risk": """You are an expert cost analyst reviewing program financials.
-
-Analyze the following input and determine if there are COST ANOMALIES.
-
-INPUT:
-{content}
-
-METADATA:
-{metadata}
-
-Based on this information, provide your assessment in the following format:
-SIGNAL_VALUE: [NORMAL or ANOMALOUS]
-CONFIDENCE: [0.0 to 1.0]
-EXPLANATION: [2-3 sentence explanation of cost indicators]
-
-Focus on budget variances, burn rate issues, and unexpected expenditures.""",
-
-        "ai_efficiency": """You are an AI operations analyst evaluating AI usage efficiency.
-
-Analyze the following input related to AI/ML usage.
-
-INPUT:
-{content}
-
-METADATA:
-{metadata}
-
-Based on this information, provide your assessment in the following format:
-SIGNAL_VALUE: [LOW, MODERATE, or HIGH]
-CONFIDENCE: [0.0 to 1.0]
-EXPLANATION: [2-3 sentence explanation of efficiency factors]
-
-Focus on token utilization, model selection appropriateness, and cost-effectiveness."""
-    }
+    PROMPTS = PROMPTS
     
     def _determine_applicable_signals(self, metadata: dict) -> List[str]:
         """Determine which signal types apply based on input metadata."""
@@ -81,59 +35,48 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
             return ["delivery_risk"]
     
     def _parse_llm_response(self, response: str) -> Tuple[str, float, str]:
-        """Parse LLM response into structured signal data."""
+        """Parse LLM response into structured signal data using resilient regex."""
         # Default values
         signal_value = "MEDIUM"
         confidence = 0.5
         explanation = "Unable to parse response."
         
-        # Parse signal value
-        value_match = re.search(r"SIGNAL_VALUE:\s*(\w+)", response, re.IGNORECASE)
+        # Parse signal value - handle potential quotes, brackets, and case
+        value_match = re.search(r"SIGNAL_VALUE:\s*['\"\[]?(\w+)['\"\]]?", response, re.IGNORECASE)
         if value_match:
             signal_value = value_match.group(1).upper()
         
-        # Parse confidence
-        conf_match = re.search(r"CONFIDENCE:\s*([\d.]+)", response, re.IGNORECASE)
+        # Parse confidence - handle potential % or brackets
+        conf_match = re.search(r"CONFIDENCE:\s*['\"\[]?([\d.]+)", response, re.IGNORECASE)
         if conf_match:
             try:
                 confidence = float(conf_match.group(1))
+                if confidence > 1.0 and confidence <= 100:
+                    confidence = confidence / 100.0
                 confidence = max(0.0, min(1.0, confidence))  # Clamp to [0, 1]
             except ValueError:
                 pass
         
-        # Parse explanation - Capture everything after the tag till the end
+        # Parse explanation - Capture everything after the tag till the end or next tag
         exp_match = re.search(r"EXPLANATION:\s*(.*)", response, re.IGNORECASE | re.DOTALL)
         if exp_match:
             explanation = exp_match.group(1).strip()
+            # If there's another tag later, strip it (unlikely with this specific tag but good practice)
+            explanation = re.split(r"\n\w+:", explanation)[0].strip()
         
         return signal_value, confidence, explanation
     
-    
     def _is_valid_signal(self, value: str, confidence: float, explanation: str, signal_type: str) -> Tuple[bool, str]:
-        """Validate the quality and completeness of a generated signal."""
-        if "unable to parse" in explanation.lower():
-            return False, "Failed to parse LLM response format."
-            
-        # Check for placeholder/empty explanation
-        if not explanation or len(explanation) < 30:
-            return False, "Explanation is too short or empty."
-            
-        # Check for common cut-off patterns
-        if explanation.endswith(":") or explanation.endswith("include"):
-            return False, "Explanation appears to be truncated."
-            
-        # Validate value based on type
-        valid_values = {
-            "delivery_risk": ["LOW", "MEDIUM", "HIGH"],
-            "cost_risk": ["NORMAL", "ANOMALOUS"],
-            "ai_efficiency": ["LOW", "MODERATE", "HIGH"]
-        }
-        
-        type_values = valid_values.get(signal_type, [])
-        if type_values and value not in type_values:
-            return False, f"Invalid signal value '{value}' for type '{signal_type}'."
-            
-        return True, ""
+        """Validate signal using Pydantic schema for strict checking."""
+        try:
+            LLMSignalResponse(
+                signal_value=value,
+                confidence=confidence,
+                explanation=explanation
+            )
+            return True, ""
+        except Exception as e:
+            return False, str(e)
 
     async def generate_signals(
         self,
@@ -178,7 +121,7 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
                     # Prepend retrieved context
                     base_content = f"[Retrieved Context from Program Documents]\n{rag_result['context']}\n\n[Current Input]\n{base_content}"
         except Exception as e:
-            print(f"RAG retrieval failed: {e}")
+            logger.error(f"RAG retrieval failed: {e}")
         
         # Prepare prompt
         prompt_template = self.PROMPTS.get(signal_type, self.PROMPTS["delivery_risk"])
@@ -204,11 +147,11 @@ Focus on token utilization, model selection appropriateness, and cost-effectiven
             
             retry_count += 1
             if retry_count <= max_retries:
-                print(f"Signal validation failed (attempt {retry_count}/{max_retries + 1}): {error_msg}")
+                logger.warning(f"Signal validation failed (attempt {retry_count}/{max_retries + 1}): {error_msg}")
                 # Augment prompt for retry
                 current_prompt = f"{prompt}\n\nNOTE: Your previous response was invalid: {error_msg}. Please ensure you follow the structure perfectly and provide a full, detailed explanation."
             else:
-                print(f"Signal validation failed after {max_retries} retries. Using best effort.")
+                logger.error(f"Signal validation failed after {max_retries} retries. Using best effort.")
         
         # Parse response one last time in case best effort is needed
         # (Already done in the loop)

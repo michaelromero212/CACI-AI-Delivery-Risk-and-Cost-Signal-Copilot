@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     cost_per_1k_input_tokens: float = 0.0001
     cost_per_1k_output_tokens: float = 0.0002
     
+    # LLM Resilience
+    llm_timeout: float = 60.0
+    llm_max_retries: int = 3
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

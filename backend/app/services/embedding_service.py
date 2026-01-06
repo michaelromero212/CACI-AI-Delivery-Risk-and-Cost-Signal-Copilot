@@ -40,16 +40,22 @@ def _load_index_and_docs():
     if os.path.exists(DOCS_PATH):
         with open(DOCS_PATH, 'r') as f:
             _document_store = json.load(f)
+        logger.info(f"Loaded document store from {DOCS_PATH} with {len(_document_store.get('documents', []))} documents.")
     else:
         _document_store = {"documents": [], "metadata": []}
+        logger.info(f"No document store found at {DOCS_PATH}. Initializing empty store.")
     
     # Load FAISS index
     if os.path.exists(INDEX_PATH):
         try:
             with open(INDEX_PATH, 'rb') as f:
                 _faiss_index = pickle.load(f)
-        except Exception:
+            logger.info(f"Loaded FAISS index from {INDEX_PATH}.")
+        except Exception as e:
+            logger.error(f"Failed to load FAISS index from {INDEX_PATH}: {e}")
             _faiss_index = None
+    else:
+        logger.info(f"No FAISS index found at {INDEX_PATH}. Initializing empty index on first store.")
     
     return _faiss_index, _document_store
 

@@ -3,6 +3,7 @@ from typing import Dict, Any
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from ..models import CostMetric, Signal
+from ..logging_config import logger
 
 
 class CostTracker:
@@ -24,6 +25,8 @@ class CostTracker:
         total_signals = result.total_signals or 0
         total_tokens = result.total_tokens or 0
         total_cost = result.total_cost or 0.0
+        
+        logger.info(f"Generated cost summary for program_id={program_id}: {total_signals} signals, ${total_cost:.4f} cost.")
         
         # Get model breakdown
         model_query = db.query(

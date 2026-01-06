@@ -3,6 +3,7 @@ import csv
 import io
 import json
 from typing import Tuple, Optional
+from ..logging_config import logger
 
 
 class InputNormalizer:
@@ -20,12 +21,34 @@ class InputNormalizer:
         Returns:
             Tuple of (normalized_content, metadata)
         """
+        raw_content = self._sanitize(raw_content)
+        
         if input_type == "csv":
             return self._normalize_csv(raw_content, filename)
         elif input_type == "txt":
             return self._normalize_txt(raw_content, filename)
         else:  # manual
             return self._normalize_manual(raw_content)
+    
+    def _sanitize(self, content: str) -> str:
+        """Sanitize input content for security and performance."""
+        if not content:
+            return ""
+            
+        # Strip trailing/leading whitespace
+        sanitized = content.strip()
+        
+        # Protect against common injection patterns or formatting artifacts
+        # (Simplified for the accelerator context)
+        sanitized = sanitized.replace("\x00", "") # Null bytes
+        
+        # Hard truncation for performance (prevent context window blowouts)
+        max_length = 50000 
+        if len(sanitized) > max_length:
+            logger.warning(f"Input truncated from {len(sanitized)} to {max_length} characters.")
+            sanitized = sanitized[:max_length] + "... [Truncated for processing performance]"
+            
+        return sanitized
     
     def _normalize_csv(
         self,
@@ -57,6 +80,7 @@ class InputNormalizer:
                 "filename": filename
             }
             
+            logger.info(f"Processed CSV: {filename or 'unknown'} ({len(rows)} rows). Detected as {content_type}.")
             return normalized, metadata
             
         except Exception as e:

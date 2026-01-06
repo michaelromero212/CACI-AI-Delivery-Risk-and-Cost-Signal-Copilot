@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Dict, Any
 from .embedding_service import embedding_service
+from ..logging_config import logger
 
 
 class RAGService:
@@ -56,6 +57,7 @@ class RAGService:
         ]
         
         if not relevant_chunks:
+            logger.info(f"No relevant context found for query: {query[:50]}...")
             return {
                 "success": True,
                 "context": "",
@@ -126,7 +128,12 @@ class RAGService:
             min_relevance=0.25
         )
         
+        total_cost = result.get("total_cost", 0.0) # Assuming total_cost might be added to result later, otherwise this will always be 0.0
+        total_signals = result.get("total_signals", 0) # Assuming total_signals might be added to result later, otherwise this will always be 0
+        
+        logger.info(f"Generated cost summary for program_id={program_id}: {total_signals} signals, ${total_cost:.4f} cost.")
         if not result.get("context"):
+            logger.info(f"No context found for augmentation for program_id={program_id}, signal_type='{signal_type}'. Returning base prompt.")
             return base_prompt
         
         # Build augmented prompt
@@ -139,6 +146,7 @@ class RAGService:
 Please analyze the above context and the following input:
 
 {base_prompt}"""
+        logger.info(f"Augmented prompt created for program_id={program_id}, signal_type='{signal_type}'. Context length: {len(result['context'])} chars.")
         
         return augmented_prompt
     
@@ -161,16 +169,31 @@ Please analyze the above context and the following input:
         Returns:
             Storage result
         """
-        return embedding_service.store_document(
-            input_id=input_id,
-            program_id=program_id,
-            content=content,
-            filename=filename
-        )
+        logger.info(f"Storing embeddings for input_id={input_id}, program_id={program_id}, filename='{filename or 'N/A'}'.")
+        try:
+            return embedding_service.store_document(
+                input_id=input_id,
+                program_id=program_id,
+                content=content,
+                filename=filename
+            )
+        except Exception as e:
+            logger.error(f"Failed to store embeddings for input_id={input_id}: {str(e)}")
+            raise
     
     def delete_input_embeddings(self, input_id: int) -> bool:
         """Delete embeddings for an input."""
-        return embedding_service.delete_input_embeddings(input_id)
+        logger.info(f"Deleting embeddings for input_id={input_id}.")
+        try:
+            result = embedding_service.delete_input_embeddings(input_id)
+            if result:
+                logger.info(f"Successfully deleted embeddings for input_id={input_id}.")
+            else:
+                logger.warning(f"Failed to delete embeddings for input_id={input_id} or embeddings not found.")
+            return result
+        except Exception as e:
+            logger.error(f"Error deleting embeddings for input_id={input_id}: {str(e)}")
+            raise
     
     def get_stats(self) -> Dict[str, Any]:
         """Get RAG service statistics."""

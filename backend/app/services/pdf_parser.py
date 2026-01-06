@@ -1,6 +1,7 @@
 """PDF Parser Service - Extract text from PDF documents."""
 from typing import Optional
 import io
+from ..logging_config import logger
 
 try:
     from pypdf import PdfReader
@@ -44,6 +45,7 @@ class PDFParser:
             return "\n\n".join(text_parts) if text_parts else ""
             
         except Exception as e:
+            logger.error(f"Failed to parse PDF content: {str(e)}")
             raise ValueError(f"Failed to parse PDF: {str(e)}")
     
     @staticmethod
