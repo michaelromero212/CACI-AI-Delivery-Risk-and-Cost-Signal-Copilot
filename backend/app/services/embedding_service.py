@@ -5,6 +5,7 @@ import os
 import json
 import pickle
 from typing import List, Optional, Dict, Any
+from ..logging_config import logger
 
 # Lazy imports for optional dependencies
 _embedding_model = None
@@ -25,7 +26,7 @@ def _get_embedding_model():
             from sentence_transformers import SentenceTransformer
             # Use a small, fast model for embeddings
             _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        except ImportError:
+        except (ImportError, Exception):
             return None
     return _embedding_model
 

@@ -13,5 +13,24 @@ class LLMSignalResponse(BaseModel):
         v = v.upper().strip()
         allowed = ["LOW", "MEDIUM", "HIGH", "NORMAL", "ANOMALOUS", "MODERATE"]
         if v not in allowed:
-            raise ValueError(f"Signal value '{v}' is not in allowed list: {allowed}")
+            # Match the expectation of legacy tests if needed, or provide a clear error
+            raise ValueError(f"Invalid signal value: '{v}'. Must be one of {allowed}")
+        return v
+
+    @field_validator('explanation')
+    @classmethod
+    def validate_explanation(cls, v: str) -> str:
+        v = v.strip()
+        
+        # Check for placeholder/error messages
+        if "unable to parse" in v.lower() or "failed to parse" in v.lower():
+            raise ValueError("Explanation indicates a failed to parse response.")
+            
+        # Check for truncation (ending in a colon or very short for a professional explanation)
+        if v.endswith(":"):
+            raise ValueError("Explanation appears to be truncated (ends in a colon).")
+            
+        if len(v) < 30: # Increased from 20 for more professional signals
+            raise ValueError("Explanation is too short and lacks professional detail.")
+            
         return v
